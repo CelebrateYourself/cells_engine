@@ -7,13 +7,12 @@ class Cells {
     constructor(selector, size, config){
 
         this.cellSize = 0
-        
+
         Object.assign(this, config)
 
         this.rows = size[0]
         this.cols = size[1]
-        this.board = Array(this.rows * this.cols)
-        this.board.fill(null)
+        this._board = new Board(size)
 
         this.element = document.querySelector(selector)
         this.canvas = document.createElement('canvas')
@@ -41,16 +40,12 @@ class Cells {
     _attachEvents(){
         this.canvas.addEventListener('mouseover', (function(e){
             const moveHandler = (function(e){
-                let cursorCoords = this._toCanvasPixels(e),
-                    cursorType = 'default',
-                    hoverCoords = this._getHoverCoords(cursorCoords)
                 
-                this.cursor = cursorCoords
-
-                if(hoverCoords){
-                    cursorType = 'pointer'
-                }
-
+                const cursorPix = this._toCanvasPixels(e),
+                      hoverCoords = this._getHoverCoords(cursorPix),
+                      cursorType = hoverCoords ? 'pointer' : 'default'
+                    
+                this.cursor = hoverCoords
                 this.canvas.style.cursor = cursorType
             }).bind(this)
 
@@ -67,17 +62,12 @@ class Cells {
             const coords = this._getHoverCoords(this._toCanvasPixels(e))
 
             if(coords){
-                const i = this._toBoardIndex(coords)
-                if(typeof(this.board[i]) === 'number'){
-                    this.selected = i
+                if(typeof(this._board.getItem(coords)) === 'number'){
+                    this.selected = coords
                 }
             }
 
         }).bind(this), false)
-    }
-
-    _toBoardIndex(coords){
-        return this.cols * coords[1] + coords[0]
     }
 
     _toCanvasPixels(e){
@@ -112,7 +102,7 @@ class Cells {
         return (
             (toCellX > cellPad && toCellY > cellPad) &&
             (toCellX < tSize + Math.floor(cellPad * 1.4) && toCellY < tSize + Math.floor(cellPad * 1.4))
-        ) ? [x,y] : null
+        ) ? [y,x] : null
     }
 
     _roundRect(ctx, x, y, width, height, radius = 5, fill = true, stroke = true){
@@ -146,53 +136,40 @@ class Cells {
     }
 
     load(dataArray){
-        const board = this.board
-
-        if(
-            !(dataArray instanceof Array)
-            || dataArray.length !== board.length    
-        ){
-            throw RangeError(`\
-${this.constructor.name}.load: the load data must be \
-an Array[${ board.length }]`)
-        }
-
-        dataArray.forEach((raw, i) => {
-            // validations
-            board[i] = raw
-        })
+        this._board.fill(dataArray)
     }
 
     draw(){
         const ctx = this.ctx,
-              board = this.board,
+              board = this._board,
               cellSize = this.cellSize,
               tokenSize = this.tokenSize,
               cellPadding = this.cellPadding,
               canvasPadding = this.canvasPadding,
               rectRound = Math.floor(this.cellSize * 0.07)
         
-        let hovered = null
-
         // clear
         ctx.clearRect(0, 0, this.canvas.width, this.canvas.height)
         ctx.fillStyle = '#fff'
         ctx.fillRect(0, 0, this.canvas.width, this.canvas.height)
 
         for(let i = 0, len = board.length; i < len; i++){
-            // free cell
-            if(board[i] === null){
-                continue
-            }
 
             const line = Math.floor(i / this.cols),
-                  item = i % this.cols
+                  item = i % this.cols,
+                  coords = [line, item],
+                  token = board.getItem(coords)
 
             const x = item * cellSize + canvasPadding + cellPadding,
                   y = line * cellSize + canvasPadding + cellPadding
 
-            // cell
-            if(typeof(board[i]) === 'number'){
+            // free cell
+            if(token === null){
+                continue
+            }
+            
+            // token
+            if(typeof(token) === 'number'){
                 ctx.shadowBlur = Math.floor(this.cellSize * 0.04)
                 ctx.shadowColor = '#999'
                 ctx.shadowOffsetX = Math.floor(this.cellSize * 0.03)
@@ -204,21 +181,20 @@ an Array[${ board.length }]`)
                 ctx.shadowOffsetY = 0 
             }
 
-            if(this.selected === i) {
+            if(
+                this.selected && 
+                (this.selected[0] === coords[0] && this.selected[1] === coords[1])
+            ){
                 ctx.fillStyle = '#888'
                 this._roundRect(ctx, x, y, tokenSize, tokenSize, rectRound, true, false)
             }
-            
-            if(this.cursor){
-                let hoveredCoords = this._getHoverCoords(this.cursor)
-                if(hoveredCoords){
-                    hovered = this._toBoardIndex(hoveredCoords)
-                }
-            }
 
             // border
-            if(typeof(board[i]) === 'number'){
-                if(hovered !== null && hovered === i){
+            if(typeof(token) === 'number'){
+                if(
+                    this.cursor && 
+                    (this.cursor[0] === coords[0] && this.cursor[1] === coords[1])
+                ){
                     ctx.lineWidth = Math.floor(this.cellSize * 0.04)
                     ctx.strokeStyle = '#aaa'
                 } else {
@@ -226,7 +202,7 @@ an Array[${ board.length }]`)
                     ctx.strokeStyle = '#bbb'
                 }
                 this._roundRect(ctx, x, y, tokenSize, tokenSize, rectRound, false, true)
-            } else if(typeof(board[i]) === 'string'){
+            } else if(typeof(token) === 'string'){
                 ctx.lineWidth = Math.floor(this.cellSize * 0.02)
                 ctx.strokeStyle = '#999'
                 ctx.fillStyle = '#666'
@@ -239,7 +215,7 @@ an Array[${ board.length }]`)
             }
 
             // text
-            if(typeof(board[i]) === 'number'){
+            if(typeof(token) === 'number'){
                 ctx.font = this.textFont
                 ctx.fillStyle = '#444'
                 ctx.textAlign = 'center'
@@ -247,13 +223,13 @@ an Array[${ board.length }]`)
                 ctx.shadowBlur = 1
                 ctx.shadowColor = '#111'
                 ctx.fillText(
-                    String(board[i]),
+                    String(token),
                     x + Math.floor(tokenSize / 2),
                     y + Math.floor(cellPadding / 2) + Math.floor(tokenSize / 2),
                     Math.floor(tokenSize * 0.75)
                 )
                 ctx.shadowBlur = 0
-            } else if(typeof(board[i]) === 'string'){
+            } else if(typeof(token) === 'string'){
                 ctx.font = this.picFont
                 ctx.fillStyle = '#aaa'
                 ctx.textAlign = 'center'

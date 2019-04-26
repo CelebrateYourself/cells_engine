@@ -43,7 +43,6 @@ range, it must be >= [0, 0] and < [${ this.rows }, ${ this.cols }]`)
     }
 
     getItem(coord){
-        console.log(`coord ${coord}, index ${this._toIndex(coord)}, token ${this.getCell(coord).token}`)
         return this.getCell(coord).token
     }
 
