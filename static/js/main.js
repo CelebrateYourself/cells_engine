@@ -1,3 +1,5 @@
+import { Board } from './cells/board';
+
 // |
 
 class Cells {
@@ -201,8 +203,9 @@ an Array[${ board.length }]`)
                 ctx.shadowOffsetX = 0
                 ctx.shadowOffsetY = 0 
             }
+
             if(this.selected === i) {
-                ctx.fillStyle = '#666'
+                ctx.fillStyle = '#888'
                 this._roundRect(ctx, x, y, tokenSize, tokenSize, rectRound, true, false)
             }
             
