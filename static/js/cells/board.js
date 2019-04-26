@@ -1,5 +1,4 @@
 
-
 export class Board {
 
     constructor(size){
@@ -28,11 +27,11 @@ range, it must be >= [0, 0] and < [${ this.rows }, ${ this.cols }]`)
     }
 
     fill(data){
-        
+
         if(!Array.isArray(data) || data.length !== this.length){
             throw Error(`Board.fill: a given data must be an Array[${ this.length }]`)
         }
-        
+
         this._board.forEach((cell, i) => { 
             cell.token = data[i]
         })
@@ -70,13 +69,9 @@ range, it must be >= [0, 0] and < [${ this.rows }, ${ this.cols }]`)
 class Cell {
 
     constructor(label = null, token = null){
-        this._capacity = 100
+        this.capacity = 100
         this.label = label
         this.token = token
-    }
-
-    get capacity(){
-        return this._capacity - (this.token ? this.token.weight : 0)
     }
 
     toString(){

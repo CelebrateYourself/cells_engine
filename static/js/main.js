@@ -1,5 +1,5 @@
 import { Board } from './cells/board';
-
+import { Token, ActiveToken, PassiveToken } from './cells/token';
 // |
 
 class Cells {
@@ -10,37 +10,42 @@ class Cells {
 
         Object.assign(this, config)
 
-        this.rows = size[0]
-        this.cols = size[1]
         this._board = new Board(size)
 
         this.element = document.querySelector(selector)
         this.canvas = document.createElement('canvas')
         this.ctx = this.canvas.getContext('2d')
+        this.ctx._roundRect = this._roundRect
 
+        // in board coords
         this.cursor = null
         this.selected = null
 
-        this.textFontSize = Math.floor(this.cellSize * 0.29)
-        this.textFont = `bold ${ this.textFontSize }px 'Georgia', serif`
-        this.picFont = `${ this.textFontSize * 2 }px 'Icons'`
+        // text
+        this.baseFontSize = Math.floor(this.cellSize * 0.29)
+        this.textFont = `bold ${ this.baseFontSize }px 'Georgia', serif`
+        this.picFont = `${ this.baseFontSize * 2 }px 'Icons'`
 
+        // paddings & styles
         this.canvasPadding = Math.floor(this.cellSize * 0.05)
         this.cellPadding = Math.floor(this.cellSize * 0.05)
         this.tokenSize = this.cellSize - this.cellPadding * 2
+        this.rectRound = Math.floor(this.cellSize * 0.07)
 
-        this.canvas.width = this.cellSize * this.cols + this.canvasPadding * 2
-        this.canvas.height = this.cellSize * this.rows + this.canvasPadding * 2
+        this.canvas.width = this.cellSize * this._board.cols + this.canvasPadding * 2
+        this.canvas.height = this.cellSize * this._board.rows + this.canvasPadding * 2
         this.element.appendChild(this.canvas)
-
+        
         this._frameCallback = this._frame.bind(this)
         this._attachEvents()
     }
 
     _attachEvents(){
+
+        // cursor & cursor coords
         this.canvas.addEventListener('mouseover', (function(e){
+            
             const moveHandler = (function(e){
-                
                 const cursorPix = this._toCanvasPixels(e),
                       hoverCoords = this._getHoverCoords(cursorPix),
                       cursorType = hoverCoords ? 'pointer' : 'default'
@@ -58,11 +63,12 @@ class Cells {
 
         }).bind(this), false)
 
+        // click & selected
         this.canvas.addEventListener('click', (function(e){
             const coords = this._getHoverCoords(this._toCanvasPixels(e))
 
             if(coords){
-                if(typeof(this._board.getItem(coords)) === 'number'){
+                if(this._board.getItem(coords) instanceof ActiveToken){
                     this.selected = coords
                 }
             }
@@ -80,6 +86,7 @@ class Cells {
         return [x, y]
     }
 
+    // returns null or token coords if cursor is on it
     _getHoverCoords(coords){
         const canvPad = this.canvasPadding,
               height = this.canvas.height - canvPad,
@@ -101,7 +108,10 @@ class Cells {
 
         return (
             (toCellX > cellPad && toCellY > cellPad) &&
-            (toCellX < tSize + Math.floor(cellPad * 1.4) && toCellY < tSize + Math.floor(cellPad * 1.4))
+            (
+                (toCellX < tSize + Math.floor(cellPad * 1.4)) && 
+                (toCellY < tSize + Math.floor(cellPad * 1.4))
+            )
         ) ? [y,x] : null
     }
 
@@ -135,31 +145,38 @@ class Cells {
         }
     }
 
-    load(dataArray){
-        this._board.fill(dataArray)
+    _clear(){
+        const ctx = this.ctx
+        ctx.clearRect(0, 0, this.canvas.width, this.canvas.height)
+        ctx.fillStyle = '#fff'
+        ctx.fillRect(0, 0, this.canvas.width, this.canvas.height)
+    }
+
+    load(data){
+        const tokens = data.map((primitive) => Token.create(primitive))
+        this._board.fill(tokens)
     }
 
     draw(){
         const ctx = this.ctx,
-              board = this._board,
-              cellSize = this.cellSize,
               tokenSize = this.tokenSize,
+              cellSize = this.cellSize,
               cellPadding = this.cellPadding,
-              canvasPadding = this.canvasPadding,
-              rectRound = Math.floor(this.cellSize * 0.07)
+              roundRect = this._roundRect,
+              rectRound = this.rectRound,
+              canvasPadding = this.canvasPadding
         
-        // clear
-        ctx.clearRect(0, 0, this.canvas.width, this.canvas.height)
-        ctx.fillStyle = '#fff'
-        ctx.fillRect(0, 0, this.canvas.width, this.canvas.height)
+        this._clear()
 
-        for(let i = 0, len = board.length; i < len; i++){
+        for(let i = 0, len = this._board.length; i < len; i++){
 
-            const line = Math.floor(i / this.cols),
-                  item = i % this.cols,
-                  coords = [line, item],
-                  token = board.getItem(coords)
+            const line = Math.floor(i / this._board.cols),
+                  item = i % this._board.cols,
+                  coords = [line, item]  // coords of current index
+                  
+            const token = this._board.getItem(coords)
 
+            // local pixel coords for shapes
             const x = item * cellSize + canvasPadding + cellPadding,
                   y = line * cellSize + canvasPadding + cellPadding
 
@@ -168,80 +185,39 @@ class Cells {
                 continue
             }
             
-            // token
-            if(typeof(token) === 'number'){
-                ctx.shadowBlur = Math.floor(this.cellSize * 0.04)
-                ctx.shadowColor = '#999'
-                ctx.shadowOffsetX = Math.floor(this.cellSize * 0.03)
-                ctx.shadowOffsetY = Math.floor(this.cellSize * 0.03)
-                ctx.fillStyle = '#ddd'
-                this._roundRect(ctx, x, y, tokenSize, tokenSize, rectRound, true, false)
-                ctx.shadowBlur = 0
-                ctx.shadowOffsetX = 0
-                ctx.shadowOffsetY = 0 
+            const config = {
+                x,
+                y,
+                cellSize,
+                tokenSize,
+                rectRound,  // round size
+                roundRect,  // function
+                cellPadding,
             }
 
-            if(
-                this.selected && 
-                (this.selected[0] === coords[0] && this.selected[1] === coords[1])
-            ){
-                ctx.fillStyle = '#888'
-                this._roundRect(ctx, x, y, tokenSize, tokenSize, rectRound, true, false)
-            }
 
-            // border
-            if(typeof(token) === 'number'){
-                if(
-                    this.cursor && 
-                    (this.cursor[0] === coords[0] && this.cursor[1] === coords[1])
-                ){
-                    ctx.lineWidth = Math.floor(this.cellSize * 0.04)
-                    ctx.strokeStyle = '#aaa'
-                } else {
-                    ctx.lineWidth = Math.floor(this.cellSize * 0.02)
-                    ctx.strokeStyle = '#bbb'
+            if(token instanceof ActiveToken){
+                
+                config.font = this.textFont
+                config.isActive = false
+                config.isHover = false
+                
+                const s = this.selected
+                if(s && (s[0] === coords[0] && s[1] === coords[1])){
+                    config.isActive = true
                 }
-                this._roundRect(ctx, x, y, tokenSize, tokenSize, rectRound, false, true)
-            } else if(typeof(token) === 'string'){
-                ctx.lineWidth = Math.floor(this.cellSize * 0.02)
-                ctx.strokeStyle = '#999'
-                ctx.fillStyle = '#666'
-                ctx.setLineDash([
-                    Math.floor(tokenSize * 0.08),
-                    Math.floor(tokenSize * 0.05)],
-                )
-                this._roundRect(ctx, x, y, tokenSize, tokenSize, rectRound, false, true)
-                ctx.setLineDash([])
+
+                const c = this.cursor
+                if(c && (c[0] === coords[0] && c[1] === coords[1])){
+                   config.isHover = true
+                }
             }
 
-            // text
-            if(typeof(token) === 'number'){
-                ctx.font = this.textFont
-                ctx.fillStyle = '#444'
-                ctx.textAlign = 'center'
-                ctx.textBaseline = 'middle'
-                ctx.shadowBlur = 1
-                ctx.shadowColor = '#111'
-                ctx.fillText(
-                    String(token),
-                    x + Math.floor(tokenSize / 2),
-                    y + Math.floor(cellPadding / 2) + Math.floor(tokenSize / 2),
-                    Math.floor(tokenSize * 0.75)
-                )
-                ctx.shadowBlur = 0
-            } else if(typeof(token) === 'string'){
-                ctx.font = this.picFont
-                ctx.fillStyle = '#aaa'
-                ctx.textAlign = 'center'
-                ctx.textBaseline = 'middle'
-                ctx.shadowColor = '#333'
-                ctx.fillText(
-                    String.fromCharCode(59455),
-                    x + tokenSize / 2,
-                    y + Math.floor(cellPadding / 2) + Math.floor(tokenSize / 2),
-                    Math.floor(tokenSize * 0.75),
-                )
+            if(token instanceof PassiveToken){
+                config.font = this.picFont
             }
+            
+            token.draw(ctx, config)
         }
 
         window.requestAnimationFrame(this._frameCallback)
@@ -256,6 +232,7 @@ class Cells {
     }
 }
 
+/*************  Test  ****************/
 const size = [3, 5]
 const map = [
     1, 2, 3, 4, 5,
