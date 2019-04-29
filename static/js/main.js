@@ -130,6 +130,25 @@ class Cells {
             )
         ) ? [y,x] : null
     }
+    /*
+    _isValid(from, to){
+        if(from[0] !== to[0] || from[1] !== to[1]){
+            return false
+        }
+    }*/
+
+    _move(from, to){
+        const board = this._board,
+              fromToken = this._board.getItem(from),
+              toToken = this._board.getItem(to)
+
+        if(toToken){
+            // change tokens [x, y] coords
+        }
+
+        board.setItem(from, toToken)
+        board.setItem(to, fromToken)
+    }
 
     _roundRect(ctx, x, y, width, height, radius = 5, fill = true, stroke = true){
  
