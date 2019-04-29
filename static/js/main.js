@@ -6,16 +6,17 @@ class Cells {
 
     constructor(selector, size, config){
 
-        this.cellSize = 0
+        this.cellSize = 0  // base value
 
         Object.assign(this, config)
 
+        // model
         this._board = new Board(size)
 
+        // root and canvas HTMLElement
         this.element = document.querySelector(selector)
         this.canvas = document.createElement('canvas')
         this.ctx = this.canvas.getContext('2d')
-        this.ctx._roundRect = this._roundRect
 
         // in board coords
         this.cursor = null
@@ -29,24 +30,23 @@ class Cells {
         // paddings & styles
         this.canvasPadding = Math.floor(this.cellSize * 0.05)
         this.cellPadding = Math.floor(this.cellSize * 0.05)
-        this.tokenSize = this.cellSize - this.cellPadding * 2
         this.rectRound = Math.floor(this.cellSize * 0.07)
+        this.tokenSize = this.cellSize - this.cellPadding * 2
 
         this.canvas.width = this.cellSize * this._board.cols + this.canvasPadding * 2
         this.canvas.height = this.cellSize * this._board.rows + this.canvasPadding * 2
-        this.element.appendChild(this.canvas)
         
+        this.element.appendChild(this.canvas)
         this._frameCallback = this._frame.bind(this)
         this._attachEvents()
     }
 
     _attachEvents(){
-
         // cursor & cursor coords
         this.canvas.addEventListener('mouseover', (function(e){
             
             const moveHandler = (function(e){
-                const cursorPix = this._toCanvasPixels(e),
+                const cursorPix = this._canvasPixelCoords(e),
                       hoverCoords = this._getHoverCoords(cursorPix),
                       cursorType = hoverCoords ? 'pointer' : 'default'
                     
@@ -65,7 +65,7 @@ class Cells {
 
         // click & selected
         this.canvas.addEventListener('click', (function(e){
-            const coords = this._getHoverCoords(this._toCanvasPixels(e))
+            const coords = this._getHoverCoords(this._canvasPixelCoords(e))
 
             if(coords){
                 if(this._board.getItem(coords) instanceof ActiveToken){
@@ -76,7 +76,14 @@ class Cells {
         }).bind(this), false)
     }
 
-    _toCanvasPixels(e){
+    _indexToCoord(i){
+        const line = Math.floor(i / this._board.cols),
+              item = i % this._board.cols
+
+        return [line, item]
+    }
+
+    _canvasPixelCoords(e){
         const tag = e.target,
               left = tag.offsetLeft,
               top = tag.offsetTop,
@@ -86,7 +93,16 @@ class Cells {
         return [x, y]
     }
 
-    // returns null or token coords if cursor is on it
+    // token local pixel coords
+    _tokenPixelCoords(boardCoords){
+        const [item, line] = boardCoords,
+              x = item * this.cellSize + this.canvasPadding + this.cellPadding,
+              y = line * this.cellSize + this.canvasPadding + this.cellPadding
+
+        return [x, y]
+    }
+
+    // returns null or token board coords if cursor is on it
     _getHoverCoords(coords){
         const canvPad = this.canvasPadding,
               height = this.canvas.height - canvPad,
@@ -152,72 +168,123 @@ class Cells {
         ctx.fillRect(0, 0, this.canvas.width, this.canvas.height)
     }
 
+    destroy(){
+        delete this.ctx
+        delete this._baseConfig
+        delete this._activeConfig
+        delete this._passiveConfig
+        this._board.destroy()
+        delete this._board
+        this.element.removeChild(this.canvas)
+        delete this.element
+        delete this._frameCallback
+    }
+
     load(data){
-        const tokens = data.map((primitive) => Token.create(primitive))
+
+        this._baseConfig = Object.freeze({
+            ctx: this.ctx,
+            tokenSize: this.tokenSize,
+            rectRound: this.rectRound,  // round size
+            _roundRect: this._roundRect,  // function
+        })
+
+        this._activeConfig = Object.freeze({
+            // token
+            tokenBorderColor: '#bbb',
+            tokenBorderWidth: Math.floor(this.tokenSize * 0.02),
+            tokenFillColor: '#ddd',
+            tokenShadowColor: '#999',
+            tokenShadowBlur: Math.floor(this.tokenSize * 0.05),
+            tokenShadowOffsetX: Math.floor(this.tokenSize * 0.04),
+            tokenShadowOffsetY: Math.floor(this.tokenSize * 0.04),
+            // text
+            font: this.textFont,
+            textFillStyle: '#444',
+            textAlign: 'center',
+            textBaseline: 'middle',
+            textShadowBlur: 1,
+            textShadowColor: '#111',
+            textMaxWidth: Math.floor(this.tokenSize * 0.75),
+            localTextX: Math.floor(this.tokenSize / 2),
+            localTextY: Math.floor(this.tokenSize / 1.8),
+        })
+
+        this._passiveConfig = Object.freeze({
+            // token
+            tokenBorderColor: '#999',
+            tokenBorderWidth: Math.floor(this.tokenSize * 0.02),
+            tokenBorderDashFilledSize: Math.floor(this.tokenSize * 0.08),
+            tokenBorderDashEmptySize: Math.floor(this.tokenSize * 0.05),
+            // text
+            font: this.picFont,
+            textFillStyle: '#aaa',
+            textAlign: 'center',
+            textBaseline: 'middle',
+            textShadowColor: '#333',
+            textMaxWidth: Math.floor(this.tokenSize * 0.75),
+            localTextX: Math.floor(this.tokenSize / 2),
+            localTextY: Math.floor(this.tokenSize / 1.9), 
+        })
+
+        const baseConfig = this._baseConfig
+        const tokens = data.map((primitive, i) => {
+
+            // board coordinates
+            const item = Math.floor(i / this._board.cols),
+                  line = i % this._board.cols,
+                  // pixel coords
+                  [x, y] = this._tokenPixelCoords([line, item])
+
+            // the 'baseConfig' is a singleton that contains common readonly props
+            return Token.create(primitive, {x, y, baseConfig})
+        })
+
         this._board.fill(tokens)
     }
 
     draw(){
-        const ctx = this.ctx,
-              tokenSize = this.tokenSize,
-              cellSize = this.cellSize,
-              cellPadding = this.cellPadding,
-              roundRect = this._roundRect,
-              rectRound = this.rectRound,
-              canvasPadding = this.canvasPadding
-        
+
         this._clear()
 
         for(let i = 0, len = this._board.length; i < len; i++){
 
-            const line = Math.floor(i / this._board.cols),
-                  item = i % this._board.cols,
-                  coords = [line, item]  // coords of current index
-                  
+            const coords = this._indexToCoord(i)
             const token = this._board.getItem(coords)
-
-            // local pixel coords for shapes
-            const x = item * cellSize + canvasPadding + cellPadding,
-                  y = line * cellSize + canvasPadding + cellPadding
 
             // free cell
             if(token === null){
                 continue
             }
             
-            const config = {
-                x,
-                y,
-                cellSize,
-                tokenSize,
-                rectRound,  // round size
-                roundRect,  // function
-                cellPadding,
-            }
-
+            const changes = {}
+            let config = {}
 
             if(token instanceof ActiveToken){
                 
-                config.font = this.textFont
-                config.isActive = false
-                config.isHover = false
-                
+                config = this._activeConfig
+
                 const s = this.selected
                 if(s && (s[0] === coords[0] && s[1] === coords[1])){
-                    config.isActive = true
+                    changes.tokenFillColor = '#888'
                 }
 
                 const c = this.cursor
                 if(c && (c[0] === coords[0] && c[1] === coords[1])){
-                   config.isHover = true
+                   changes.tokenBorderColor = '#aaa'
+                   changes.tokenBorderWidth = Math.floor(this.tokenSize * 0.05)
                 }
             }
 
             if(token instanceof PassiveToken){
-                config.font = this.picFont
+                config = this._passiveConfig
             }
             
-            token.draw(ctx, config)
+            if(Object.keys(changes).length){
+                config = Object.assign({}, config, changes)
+            }
+
+            token.draw(config)
         }
 
         window.requestAnimationFrame(this._frameCallback)

@@ -27,7 +27,6 @@ range, it must be >= [0, 0] and < [${ this.rows }, ${ this.cols }]`)
     }
 
     fill(data){
-
         if(!Array.isArray(data) || data.length !== this.length){
             throw Error(`Board.fill: a given data must be an Array[${ this.length }]`)
         }
@@ -47,6 +46,13 @@ range, it must be >= [0, 0] and < [${ this.rows }, ${ this.cols }]`)
 
     setItem(coord, token){
         this.getItem(coord).token = token
+    }
+
+    destroy(){
+        this._board.forEach((cell, i, board) => { 
+            cell.destroy()
+            board[i] = null 
+        })
     }
 
     toString(){
@@ -72,6 +78,10 @@ class Cell {
         this.capacity = 100
         this.label = label
         this.token = token
+    }
+
+    destroy(){
+        this.token = null
     }
 
     toString(){
