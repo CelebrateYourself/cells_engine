@@ -178,8 +178,13 @@ class Cells {
         ){
             this._change(this.selected, coords)
             this.selected = null
+            this._eventQueue.push(this._onChange.bind(this))
         }
         
+    }
+
+    _onChange(){
+        console.log(`isComplete: ${ this._isComplete()} `)
     }
 
     _indexToCoord(i){
@@ -440,13 +445,9 @@ Cells.load: the argument must be an Array[ ${this._board.length} ]`)
                    changes.tokenBorderColor = '#aaa'
                    changes.tokenBorderWidth = Math.floor(this.tokenSize * 0.05)
                 }
-            }
-
-            if(token instanceof LightPassiveToken){
+            } else if(token instanceof LightPassiveToken){
                 config = this._lightPassiveConfig
-            }
-
-            if(token instanceof HeavyPassiveToken){
+            } else if(token instanceof HeavyPassiveToken){
                 config = this._heavyPassiveConfig
             }
             
