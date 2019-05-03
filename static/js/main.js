@@ -126,8 +126,15 @@ class Cells {
     _onClick(e){
         const coords = this._getHoverCoords(this._canvasPixelCoords(e))
 
-        if(coords){
-            if(this._board.getItem(coords) instanceof ActiveToken){
+        if(!coords){
+            return
+        }
+
+        if(this._board.getItem(coords) instanceof ActiveToken){
+            if(this.selected){
+                this._change(this.selected, coords)
+                this.selected = null
+            } else {
                 this.selected = coords
             }
         }
@@ -194,17 +201,22 @@ class Cells {
         }
     }*/
 
-    _move(from, to){
+    _change(from, to){
         const board = this._board,
               fromToken = this._board.getItem(from),
-              toToken = this._board.getItem(to)
-
-        if(toToken){
-            // change tokens [x, y] coords
-        }
+              toToken = this._board.getItem(to),
+              fromPixelCoords = this._tokenPixelCoords(from),
+              toPixelCoords = this._tokenPixelCoords(to)
 
         board.setItem(from, toToken)
         board.setItem(to, fromToken)
+
+        if(toToken && toToken instanceof Token){
+            toToken.x = fromPixelCoords[1]
+            toToken.y = fromPixelCoords[0]
+        }
+        fromToken.x = toPixelCoords[1]
+        fromToken.y = toPixelCoords[0]
     }
 
     _roundRect(ctx, x, y, width, height, radius = 5, fill = true, stroke = true){

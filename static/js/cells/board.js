@@ -45,7 +45,7 @@ range, it must be >= [0, 0] and < [${ this.rows }, ${ this.cols }]`)
     }
 
     setItem(coord, token){
-        this.getItem(coord).token = token
+        this.getCell(coord).token = token
     }
 
     destroy(){
