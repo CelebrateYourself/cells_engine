@@ -1,5 +1,11 @@
 import { Board } from './cells/board';
-import { Token, ActiveToken, PassiveToken } from './cells/token';
+import {
+    Token,
+    ActiveToken,
+    PassiveToken,
+    HeavyPassiveToken,
+    LightPassiveToken
+} from './cells/token';
 import { random } from './cells/utils';
 // |
 
@@ -87,9 +93,9 @@ class Cells {
             localTextY: Math.floor(this.tokenSize / 1.8),
         })
 
-        this._passiveConfig = Object.freeze({
+        this._heavyPassiveConfig = Object.freeze({
             // token
-            tokenBorderColor: '#aaa',
+            tokenBorderColor: '#999',
             tokenBorderWidth: Math.floor(this.tokenSize * 0.02),
             tokenBorderDashFilledSize: Math.floor(this.tokenSize * 0.08),
             tokenBorderDashEmptySize: Math.floor(this.tokenSize * 0.05),
@@ -99,7 +105,23 @@ class Cells {
             textFillStyle: '#777',
             textAlign: 'center',
             textBaseline: 'middle',
-            textShadowColor: '#111',
+            textShadowColor: '#666',
+            textShadowBlur: 1,
+            textMaxWidth: Math.floor(this.tokenSize * 0.75),
+            localTextX: Math.floor(this.tokenSize / 2),
+            localTextY: Math.floor(this.tokenSize / 1.9), 
+        })
+
+        this._lightPassiveConfig = Object.freeze({
+            // token
+            tokenFillColor: '#fff',
+            // text
+            font: this.picFont,
+            textFillStyle: '#777',
+            textAlign: 'center',
+            textBaseline: 'middle',
+            textShadowColor: '#666',
+            textShadowBlur: 1,
             textMaxWidth: Math.floor(this.tokenSize * 0.75),
             localTextX: Math.floor(this.tokenSize / 2),
             localTextY: Math.floor(this.tokenSize / 1.9), 
@@ -420,8 +442,12 @@ Cells.load: the argument must be an Array[ ${this._board.length} ]`)
                 }
             }
 
-            if(token instanceof PassiveToken){
-                config = this._passiveConfig
+            if(token instanceof LightPassiveToken){
+                config = this._lightPassiveConfig
+            }
+
+            if(token instanceof HeavyPassiveToken){
+                config = this._heavyPassiveConfig
             }
             
             if(Object.keys(changes).length){
@@ -451,7 +477,7 @@ Cells.load: the argument must be an Array[ ${this._board.length} ]`)
     }
 
     run(){
-        if(this._isComplete()){
+        while(this._isComplete()){
             this._shuffle(Math.floor(this._board.length / 2))
         }
         window.requestAnimationFrame(this._frameCallback)
@@ -462,8 +488,8 @@ Cells.load: the argument must be an Array[ ${this._board.length} ]`)
 const size = [3, 5]
 const map = [
     1, 2, 3, 4, 5,
-    null, 'Rock', 6, 7, 8,
-    9, 10, 11, 'Tree', null,
+    'heavy', null, 'light', 6, 7,
+    8, 9, 10,  null, 'heavy',
 ]
 
 

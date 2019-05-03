@@ -18,7 +18,7 @@ Token.draw: is an abstract method. Must be overridden by subclasses`)
         if(type === 'number'){
             return new ActiveToken(raw, viewConfig)
         } else if(type === 'string'){
-            return new PassiveToken(raw, viewConfig)
+            return PassiveToken.create(raw, viewConfig)
         } else {
             return null
         }
@@ -101,8 +101,30 @@ class PassiveToken extends Token {
         // common sizes
         this.config = viewConfig.baseConfig
         // model
-        this.weight = 80
+        this.weight = 100
         this.value = value
+    }
+
+    toString(){
+        return String(this.value)
+    }
+
+    static create(raw, viewConfig){
+        if(raw === 'heavy'){
+            return new HeavyPassiveToken(raw, viewConfig)
+        } else if(raw === 'light'){
+            return new LightPassiveToken(raw, viewConfig)
+        }
+    }
+}
+
+
+class HeavyPassiveToken extends PassiveToken {
+    
+    constructor(value, viewConfig){
+        super(value, viewConfig)
+
+        this.weight = 80
     }
 
     toString(){
@@ -133,6 +155,7 @@ class PassiveToken extends Token {
         ctx.textAlign = config.textAlign
         ctx.textBaseline = config.textBaseline
         ctx.shadowColor = config.textShadowColor
+        ctx.shadowBlur = config.textShadowBlur
         ctx.fillText(
             String.fromCharCode(59455),
             x + config.localTextX,
@@ -143,9 +166,50 @@ class PassiveToken extends Token {
 }
 
 
+class LightPassiveToken extends PassiveToken {
+    
+    constructor(value, viewConfig){
+        super(value, viewConfig)
 
-module.exports = {
+        this.weight = 40
+    }
+
+    toString(){
+        return String(this.value)
+    }
+
+    draw(config){
+
+        const ctx = this.config.ctx,
+              tokenSize = this.config.tokenSize,
+              rectRound = this.config.rectRound,
+              roundRect = this.config._roundRect,
+              x = this.x,
+              y = this.y
+
+        ctx.fillStyle = config.tokenFillColor
+        roundRect(ctx, x, y, tokenSize, tokenSize, rectRound, true, false)
+        // text
+        ctx.font = config.font
+        ctx.fillStyle = config.textFillStyle
+        ctx.textAlign = config.textAlign
+        ctx.textBaseline = config.textBaseline
+        ctx.shadowColor = config.textShadowColor
+        ctx.shadowBlur = config.textShadowBlur
+        ctx.fillText(
+            String.fromCharCode(61872),
+            x + config.localTextX,
+            y + config.localTextY,
+            config.textMaxWidth,
+        )
+    }
+}
+
+
+export {
     Token,
     ActiveToken,
     PassiveToken,
+    HeavyPassiveToken,
+    LightPassiveToken,
 }
