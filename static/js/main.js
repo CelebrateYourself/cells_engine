@@ -1,5 +1,6 @@
 import { Board } from './cells/board';
 import { Token, ActiveToken, PassiveToken } from './cells/token';
+import { random } from './cells/utils';
 // |
 
 class Cells {
@@ -278,8 +279,11 @@ class Cells {
             toToken.x = fromPixelCoords[1]
             toToken.y = fromPixelCoords[0]
         }
-        fromToken.x = toPixelCoords[1]
-        fromToken.y = toPixelCoords[0]
+
+        if(fromToken && fromToken instanceof Token){
+            fromToken.x = toPixelCoords[1]
+            fromToken.y = toPixelCoords[0]
+        }
     }
 
     _roundRect(ctx, x, y, width, height, radius = 5, fill = true, stroke = true){
@@ -317,6 +321,28 @@ class Cells {
         ctx.clearRect(0, 0, this.canvas.width, this.canvas.height)
         ctx.fillStyle = '#fff'
         ctx.fillRect(0, 0, this.canvas.width, this.canvas.height)
+    }
+
+    _shuffle(n){
+        let from, to, token
+        const len = this._board.length - 1
+
+        while(n--){
+            do {
+                do {
+                    from = this._indexToCoord(random(len))
+                    token = this._board.getItem(from)
+                } while(token instanceof PassiveToken)
+
+                do {
+                    to = this._indexToCoord(random(len))
+                    token = this._board.getItem(to)
+                } while(token instanceof PassiveToken)
+
+            } while(from[0] === to[0] && from[1] === to[1])
+
+            this._change(from, to)
+        }
     }
 
     destroy(){
@@ -425,6 +451,9 @@ Cells.load: the argument must be an Array[ ${this._board.length} ]`)
     }
 
     run(){
+        if(this._isComplete()){
+            this._shuffle(Math.floor(this._board.length / 2))
+        }
         window.requestAnimationFrame(this._frameCallback)
     }
 }
