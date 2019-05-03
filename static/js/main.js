@@ -21,6 +21,7 @@ class Cells {
         // in board coords
         this.cursor = null
         this.selected = null
+        this._eventQueue = []
 
         // text
         this.baseFontSize = Math.floor(this.cellSize * 0.29)
@@ -38,7 +39,56 @@ class Cells {
         
         this.element.appendChild(this.canvas)
         this._frameCallback = this._frame.bind(this)
+        this._computeStyles()
         this._attachEvents()
+    }
+
+    _computeStyles(){
+
+        this._baseConfig = Object.freeze({
+            ctx: this.ctx,
+            tokenSize: this.tokenSize,
+            rectRound: this.rectRound,  // round size
+            _roundRect: this._roundRect,  // function
+        })
+
+        this._activeConfig = Object.freeze({
+            // token
+            tokenBorderColor: '#bbb',
+            tokenBorderWidth: Math.floor(this.tokenSize * 0.02),
+            tokenFillColor: '#ddd',
+            tokenShadowColor: '#999',
+            tokenShadowBlur: Math.floor(this.tokenSize * 0.05),
+            tokenShadowOffsetX: Math.floor(this.tokenSize * 0.04),
+            tokenShadowOffsetY: Math.floor(this.tokenSize * 0.04),
+            // text
+            font: this.textFont,
+            textFillStyle: '#444',
+            textAlign: 'center',
+            textBaseline: 'middle',
+            textShadowBlur: 1,
+            textShadowColor: '#111',
+            textMaxWidth: Math.floor(this.tokenSize * 0.75),
+            localTextX: Math.floor(this.tokenSize / 2),
+            localTextY: Math.floor(this.tokenSize / 1.8),
+        })
+
+        this._passiveConfig = Object.freeze({
+            // token
+            tokenBorderColor: '#999',
+            tokenBorderWidth: Math.floor(this.tokenSize * 0.02),
+            tokenBorderDashFilledSize: Math.floor(this.tokenSize * 0.08),
+            tokenBorderDashEmptySize: Math.floor(this.tokenSize * 0.05),
+            // text
+            font: this.picFont,
+            textFillStyle: '#aaa',
+            textAlign: 'center',
+            textBaseline: 'middle',
+            textShadowColor: '#333',
+            textMaxWidth: Math.floor(this.tokenSize * 0.75),
+            localTextX: Math.floor(this.tokenSize / 2),
+            localTextY: Math.floor(this.tokenSize / 1.9), 
+        })
     }
 
     _attachEvents(){
@@ -46,12 +96,7 @@ class Cells {
         this.canvas.addEventListener('mouseover', (function(e){
             
             const moveHandler = (function(e){
-                const cursorPix = this._canvasPixelCoords(e),
-                      hoverCoords = this._getHoverCoords(cursorPix),
-                      cursorType = hoverCoords ? 'pointer' : 'default'
-                    
-                this.cursor = hoverCoords
-                this.canvas.style.cursor = cursorType
+                this._eventQueue.push(this._onHover.bind(this, e))
             }).bind(this)
 
             this.canvas.addEventListener('mouseleave', (function(e){
@@ -65,15 +110,27 @@ class Cells {
 
         // click & selected
         this.canvas.addEventListener('click', (function(e){
-            const coords = this._getHoverCoords(this._canvasPixelCoords(e))
-
-            if(coords){
-                if(this._board.getItem(coords) instanceof ActiveToken){
-                    this.selected = coords
-                }
-            }
-
+            this._eventQueue.push(this._onClick.bind(this, e))
         }).bind(this), false)
+    }
+
+    _onHover(e){
+        const cursorPix = this._canvasPixelCoords(e),
+              hoverCoords = this._getHoverCoords(cursorPix),
+              cursorType = hoverCoords ? 'pointer' : 'default'
+            
+        this.cursor = hoverCoords
+        this.canvas.style.cursor = cursorType
+    }
+
+    _onClick(e){
+        const coords = this._getHoverCoords(this._canvasPixelCoords(e))
+
+        if(coords){
+            if(this._board.getItem(coords) instanceof ActiveToken){
+                this.selected = coords
+            }
+        }
     }
 
     _indexToCoord(i){
@@ -201,51 +258,6 @@ class Cells {
 
     load(data){
 
-        this._baseConfig = Object.freeze({
-            ctx: this.ctx,
-            tokenSize: this.tokenSize,
-            rectRound: this.rectRound,  // round size
-            _roundRect: this._roundRect,  // function
-        })
-
-        this._activeConfig = Object.freeze({
-            // token
-            tokenBorderColor: '#bbb',
-            tokenBorderWidth: Math.floor(this.tokenSize * 0.02),
-            tokenFillColor: '#ddd',
-            tokenShadowColor: '#999',
-            tokenShadowBlur: Math.floor(this.tokenSize * 0.05),
-            tokenShadowOffsetX: Math.floor(this.tokenSize * 0.04),
-            tokenShadowOffsetY: Math.floor(this.tokenSize * 0.04),
-            // text
-            font: this.textFont,
-            textFillStyle: '#444',
-            textAlign: 'center',
-            textBaseline: 'middle',
-            textShadowBlur: 1,
-            textShadowColor: '#111',
-            textMaxWidth: Math.floor(this.tokenSize * 0.75),
-            localTextX: Math.floor(this.tokenSize / 2),
-            localTextY: Math.floor(this.tokenSize / 1.8),
-        })
-
-        this._passiveConfig = Object.freeze({
-            // token
-            tokenBorderColor: '#999',
-            tokenBorderWidth: Math.floor(this.tokenSize * 0.02),
-            tokenBorderDashFilledSize: Math.floor(this.tokenSize * 0.08),
-            tokenBorderDashEmptySize: Math.floor(this.tokenSize * 0.05),
-            // text
-            font: this.picFont,
-            textFillStyle: '#aaa',
-            textAlign: 'center',
-            textBaseline: 'middle',
-            textShadowColor: '#333',
-            textMaxWidth: Math.floor(this.tokenSize * 0.75),
-            localTextX: Math.floor(this.tokenSize / 2),
-            localTextY: Math.floor(this.tokenSize / 1.9), 
-        })
-
         const baseConfig = this._baseConfig
         const tokens = data.map((primitive, i) => {
 
@@ -309,7 +321,19 @@ class Cells {
         window.requestAnimationFrame(this._frameCallback)
     }
 
+    update(){
+        const queue = this._eventQueue
+        while(queue.length){
+            const handler = queue.shift()
+            if(!handler){
+                return
+            }
+            handler() 
+        }
+    }
+
     _frame(){
+        this.update()
         this.draw()
     }
 
