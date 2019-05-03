@@ -26,16 +26,6 @@ range, it must be >= [0, 0] and < [${ this.rows }, ${ this.cols }]`)
         return row * this.cols + col
     }
 
-    fill(data){
-        if(!Array.isArray(data) || data.length !== this.length){
-            throw Error(`Board.fill: a given data must be an Array[${ this.length }]`)
-        }
-
-        this._board.forEach((cell, i) => { 
-            cell.token = data[i]
-        })
-    }
-
     getCell(coord){
         return this._board[ this._toIndex(coord) ]
     }
@@ -78,6 +68,9 @@ class Cell {
         this.capacity = 100
         this.label = label
         this.token = token
+
+        this.x = null
+        this.y = null
     }
 
     destroy(){
@@ -86,5 +79,24 @@ class Cell {
 
     toString(){
         return String(this.token)
+    }
+
+    draw(config){
+        const ctx = config.ctx
+
+        ctx.font = config.font
+        ctx.fillStyle = config.textFillStyle
+        ctx.textAlign = config.textAlign
+        ctx.textBaseline = config.textBaseline
+        ctx.shadowBlur = config.textShadowBlur
+        ctx.shadowColor = config.textShadowColor
+        ctx.fillText(
+            String(this.label || ''),
+            this.x + config.localTextX,
+            this.y + config.localTextY,
+            config.textMaxWidth
+        )
+        // reset shadow effect
+        ctx.shadowBlur = 0
     }
 }

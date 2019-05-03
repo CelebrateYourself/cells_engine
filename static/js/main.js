@@ -7,9 +7,9 @@ class Cells {
     constructor(selector, size, config){
 
         this.cellSize = 0  // base value
-
+        
         Object.assign(this, config)
-
+        
         // model
         this._board = new Board(size)
 
@@ -45,6 +45,19 @@ class Cells {
 
     _computeStyles(){
 
+        this._cellConfig = Object.freeze({
+            ctx: this.ctx,
+            font: this.textFont,
+            textFillStyle: '#999',
+            textAlign: 'center',
+            textBaseline: 'middle',
+            textShadowBlur: 1,
+            textShadowColor: '#666',
+            textMaxWidth: Math.floor(this.cellSize * 0.70),
+            localTextX: Math.floor(this.cellSize / 2),
+            localTextY: Math.floor(this.cellSize / 1.8)
+        })
+
         this._baseConfig = Object.freeze({
             ctx: this.ctx,
             tokenSize: this.tokenSize,
@@ -75,16 +88,17 @@ class Cells {
 
         this._passiveConfig = Object.freeze({
             // token
-            tokenBorderColor: '#999',
+            tokenBorderColor: '#aaa',
             tokenBorderWidth: Math.floor(this.tokenSize * 0.02),
             tokenBorderDashFilledSize: Math.floor(this.tokenSize * 0.08),
             tokenBorderDashEmptySize: Math.floor(this.tokenSize * 0.05),
+            tokenFillColor: '#fff',
             // text
             font: this.picFont,
-            textFillStyle: '#aaa',
+            textFillStyle: '#777',
             textAlign: 'center',
             textBaseline: 'middle',
-            textShadowColor: '#333',
+            textShadowColor: '#111',
             textMaxWidth: Math.floor(this.tokenSize * 0.75),
             localTextX: Math.floor(this.tokenSize / 2),
             localTextY: Math.floor(this.tokenSize / 1.9), 
@@ -137,7 +151,7 @@ class Cells {
         } else if(
             token === null &&
             this.selected &&
-            this._isValid(this.selected, coords)
+            this._isValidMove(this.selected, coords)
         ){
             this._change(this.selected, coords)
             this.selected = null
@@ -162,13 +176,18 @@ class Cells {
         return [x, y]
     }
 
-    // token local pixel coords
-    _tokenPixelCoords(boardCoords){
+    _cellPixelCoords(boardCoords){
         const [item, line] = boardCoords,
-              x = item * this.cellSize + this.canvasPadding + this.cellPadding,
-              y = line * this.cellSize + this.canvasPadding + this.cellPadding
+              x = item * this.cellSize + this.canvasPadding,
+              y = line * this.cellSize + this.canvasPadding
 
         return [x, y]
+    }
+
+    // token local pixel coords
+    _tokenPixelCoords(boardCoords){
+        const [x, y] = this._cellPixelCoords(boardCoords)
+        return [x + this.cellPadding, y + this.cellPadding]
     }
 
     // returns null or token board coords if cursor is on it
@@ -200,8 +219,23 @@ class Cells {
         ) ? [y,x] : null
     }
 
+    _isComplete(){
+        const board = this._board,
+              len = board.length
+
+        for(let i = 0; i < len; i++){
+            const cell = board.getCell(this._indexToCoord(i)),
+                  token = cell.token
+            if(cell.label !== (token ? token.value : token)){
+                return false
+            }
+        }
+
+        return true
+    }
+
     // from & to in border coords
-    _isValid(from, to){
+    _isValidMove(from, to){
         if(from[0] !== to[0] && from[1] !== to[1]){
             return false
         }
@@ -299,20 +333,29 @@ class Cells {
 
     load(data){
 
+        if(!(Array.isArray(data) && data.length === this._board.length)){
+            throw RangeError(`\
+Cells.load: the argument must be an Array[ ${this._board.length} ]`)
+        }
+
         const baseConfig = this._baseConfig
-        const tokens = data.map((primitive, i) => {
+        data.forEach((primitive, i) => {
 
             // board coordinates
             const item = Math.floor(i / this._board.cols),
                   line = i % this._board.cols,
                   // pixel coords
+                  [cX, cY] = this._cellPixelCoords([line, item]),
                   [x, y] = this._tokenPixelCoords([line, item])
+            
+            const cell = this._board.getCell([item, line])
 
+            cell.label = primitive
+            cell.x = cX
+            cell.y = cY
             // the 'baseConfig' is a singleton that contains common readonly props
-            return Token.create(primitive, {x, y, baseConfig})
+            cell.token = Token.create(primitive, {x, y, baseConfig})
         })
-
-        this._board.fill(tokens)
     }
 
     draw(){
@@ -321,8 +364,11 @@ class Cells {
 
         for(let i = 0, len = this._board.length; i < len; i++){
 
-            const coords = this._indexToCoord(i)
-            const token = this._board.getItem(coords)
+            const coords = this._indexToCoord(i),
+                  cell = this._board.getCell(coords),
+                  token = cell.token
+
+            cell.draw(this._cellConfig)
 
             // free cell
             if(token === null){

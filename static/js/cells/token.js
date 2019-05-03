@@ -119,10 +119,11 @@ class PassiveToken extends Token {
               roundRect = this.config._roundRect
 
         // border
+        ctx.fillStyle = config.tokenFillColor
         ctx.lineWidth = config.tokenBorderWidth
         ctx.strokeStyle = config.tokenBorderColor
         ctx.setLineDash([config.tokenBorderDashFilledSize, config.tokenBorderDashEmptySize])
-        roundRect(ctx, x, y, tokenSize, tokenSize, rectRound, false, true)
+        roundRect(ctx, x, y, tokenSize, tokenSize, rectRound, true, true)
         // reset dash
         ctx.setLineDash([])
 
