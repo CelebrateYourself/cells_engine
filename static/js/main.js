@@ -130,14 +130,19 @@ class Cells {
             return
         }
 
-        if(this._board.getItem(coords) instanceof ActiveToken){
-            if(this.selected){
-                this._change(this.selected, coords)
-                this.selected = null
-            } else {
-                this.selected = coords
-            }
+        const token = this._board.getItem(coords)
+        
+        if(token instanceof ActiveToken){
+            this.selected = coords
+        } else if(
+            token === null &&
+            this.selected &&
+            this._isValid(this.selected, coords)
+        ){
+            this._change(this.selected, coords)
+            this.selected = null
         }
+        
     }
 
     _indexToCoord(i){
@@ -194,12 +199,36 @@ class Cells {
             )
         ) ? [y,x] : null
     }
-    /*
+
+    // from & to in border coords
     _isValid(from, to){
-        if(from[0] !== to[0] || from[1] !== to[1]){
+        if(from[0] !== to[0] && from[1] !== to[1]){
             return false
         }
-    }*/
+
+        const xStep = ((from[0] === to[0]) ? 0 : (from[0] < to[0]) ? 1 : -1),
+              yStep = ((from[1] === to[1]) ? 0 : (from[1] < to[1]) ? 1 : -1),
+              pos = [from[0] + xStep, from[1] + yStep]
+
+        while(!(pos[0] === to[0] && pos[1] === to[1])){
+            if(!this._canCrossIt(from, pos)){
+                return false
+            }
+            pos[0] += xStep
+            pos[1] += yStep
+        }
+
+        return true
+    }
+
+    // who & what in border coords
+    _canCrossIt(who, what){
+        const whoToken = this._board.getItem(who),
+              whatCell = this._board.getCell(what),
+              whatTokenWeight = (whatCell.token ? whatCell.token.weight : 0)
+
+        return (whatCell.capacity - whatTokenWeight - whoToken.weight) >= 0
+    }
 
     _change(from, to){
         const board = this._board,
