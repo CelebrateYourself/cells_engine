@@ -6,6 +6,8 @@ import {
     HeavyPassiveToken,
     LightPassiveToken
 } from './cells/token'
+import { Counter } from './cells/counter'
+import { Timer } from './cells/timer'
 import { random } from './cells/utils'
 // |
 
@@ -19,6 +21,8 @@ class Cells {
         
         // model
         this._board = new Board(size)
+        this._timer = new Timer()
+        this._counter = new Counter()
 
         // root and canvas HTMLElement
         this.element = document.querySelector(selector)
@@ -30,7 +34,7 @@ class Cells {
         this.selected = null
         this._eventQueue = []
 
-        this.panelSize = Math.floor(this.cellSize * 0.7)
+        this.panelSize = Math.floor(this.cellSize * 0.8)
 
         // text
         this.baseFontSize = Math.floor(this.cellSize * 0.29)
@@ -44,7 +48,10 @@ class Cells {
         this.tokenSize = this.cellSize - this.cellPadding * 2
 
         this.canvas.width = this.cellSize * this._board.cols + this.canvasPadding * 2
-        this.canvas.height = this.cellSize * this._board.rows + this.canvasPadding * 2 + this.panelSize
+        this.canvas.height = (
+            this.cellSize * this._board.rows + 
+            this.canvasPadding * 2 + this.panelSize
+        )
         
         this.element.appendChild(this.canvas)
         this._frameCallback = this._frame.bind(this)
@@ -128,6 +135,38 @@ class Cells {
             localTextX: Math.floor(this.tokenSize / 2),
             localTextY: Math.floor(this.tokenSize / 1.9), 
         })
+
+        this._timerConfig = Object.freeze({
+            ctx: this.ctx,
+            x: this.panelSize * 0.2,
+            y: this.panelSize * 0.6,
+            // text
+            font: this.textFont,
+            textFillStyle: '#555',
+            textAlign: 'left',
+            textBaseline: 'middle',
+            textShadowColor: '#111',
+            textShadowBlur: 1,
+            textMaxWidth: Math.floor(this.tokenSize * 0.75),
+            localTextX: Math.floor(this.tokenSize / 2),
+            localTextY: Math.floor(this.tokenSize / 1.9), 
+        })
+
+        this._counterConfig = Object.freeze({
+            ctx: this.ctx,
+            x: Math.floor(this.canvas.width * 0.97),
+            y: Math.floor(this.panelSize * 0.6),
+            // text
+            font: this.textFont,
+            textFillStyle: '#555',
+            textAlign: 'right',
+            textBaseline: 'middle',
+            textShadowColor: '#111',
+            textShadowBlur: 1,
+            textMaxWidth: Math.floor(this.tokenSize * 0.75),
+            localTextX: Math.floor(this.tokenSize / 2),
+            localTextY: Math.floor(this.tokenSize / 1.9), 
+        })
     }
 
     _attachEvents(){
@@ -181,8 +220,8 @@ class Cells {
             this._change(this.selected, coords)
             this.selected = null
             this._eventQueue.push(this._onChange.bind(this))
+            this._eventQueue.push(this._counter.incr.bind(this._counter))
         }
-        
     }
 
     _onChange(){
@@ -412,17 +451,44 @@ Cells.load: the argument must be an Array[ ${this._board.length} ]`)
         })
     }
 
+
+    _drawPanel(){
+        this.ctx.shadowBlur = 0
+        this.ctx.fillStyle = '#ddd'
+        this.ctx.fillRect(0, 0, this.canvas.width, this.panelSize)
+    }
+
+
     draw(){
 
         this._clear()
+        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height)
+        this._drawPanel()
+        this._timer.draw(this._timerConfig)
+        this._counter.draw(this._counterConfig)
 
-        this.ctx.fillStyle = '#aaa'
-        this.ctx.fillRect(
-            0 + this.canvasPadding,
-            0 + this.canvasPadding,
-            this.canvas.width - this.canvasPadding * 2,
-            this.panelSize - this.canvasPadding
-        )
+        this.ctx.shadowBlur = 0
+        this.ctx.lineWidth = this.panelSize * 0.05
+        this.ctx.strokeStyle = '#555'
+        this.ctx.beginPath()
+        this.ctx.moveTo(0, this.panelSize * 0.99)
+        this.ctx.lineTo(this.canvas.width, this.panelSize * 0.99)
+        this.ctx.stroke()
+        this.ctx.lineWidth = 0
+
+        /*
+        this.ctx.shadowBlur = 1
+        this.ctx.shadowColor = '#111'
+        //this.ctx.font = this.textFont
+        this.ctx.fillStyle = '#555'
+        this.ctx.textAlign = 'center'
+        this.ctx.textBaseline = 'middle'
+        this.ctx.fillText(
+            'Pause',
+            this.canvas.width / 2,
+            this.panelSize * 0.6
+        )*/
+        this.ctx.shadowBlur = 0
 
         for(let i = 0, len = this._board.length; i < len; i++){
 
@@ -466,12 +532,13 @@ Cells.load: the argument must be an Array[ ${this._board.length} ]`)
 
             token.draw(config)
         }
-
-        window.requestAnimationFrame(this._frameCallback)
     }
 
     update(){
         const queue = this._eventQueue
+
+        this._timer.update()
+
         while(queue.length){
             const handler = queue.shift()
             if(!handler){
@@ -484,12 +551,15 @@ Cells.load: the argument must be an Array[ ${this._board.length} ]`)
     _frame(){
         this.update()
         this.draw()
+
+        window.requestAnimationFrame(this._frameCallback)
     }
 
     run(){
         while(this._isComplete()){
             this._shuffle(Math.floor(this._board.length / 2))
         }
+        this._timer.start()
         window.requestAnimationFrame(this._frameCallback)
     }
 }
