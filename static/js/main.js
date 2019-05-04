@@ -1,12 +1,12 @@
-import { Board } from './cells/board';
+import { Board } from './cells/board'
 import {
     Token,
     ActiveToken,
     PassiveToken,
     HeavyPassiveToken,
     LightPassiveToken
-} from './cells/token';
-import { random } from './cells/utils';
+} from './cells/token'
+import { random } from './cells/utils'
 // |
 
 class Cells {
@@ -30,6 +30,8 @@ class Cells {
         this.selected = null
         this._eventQueue = []
 
+        this.panelSize = Math.floor(this.cellSize * 0.7)
+
         // text
         this.baseFontSize = Math.floor(this.cellSize * 0.29)
         this.textFont = `bold ${ this.baseFontSize }px 'Georgia', serif`
@@ -42,7 +44,7 @@ class Cells {
         this.tokenSize = this.cellSize - this.cellPadding * 2
 
         this.canvas.width = this.cellSize * this._board.cols + this.canvasPadding * 2
-        this.canvas.height = this.cellSize * this._board.rows + this.canvasPadding * 2
+        this.canvas.height = this.cellSize * this._board.rows + this.canvasPadding * 2 + this.panelSize
         
         this.element.appendChild(this.canvas)
         this._frameCallback = this._frame.bind(this)
@@ -168,7 +170,7 @@ class Cells {
         }
 
         const token = this._board.getItem(coords)
-        
+
         if(token instanceof ActiveToken){
             this.selected = coords
         } else if(
@@ -205,9 +207,9 @@ class Cells {
     }
 
     _cellPixelCoords(boardCoords){
-        const [item, line] = boardCoords,
+        const [line, item] = boardCoords,
               x = item * this.cellSize + this.canvasPadding,
-              y = line * this.cellSize + this.canvasPadding
+              y = line * this.cellSize + this.canvasPadding + this.panelSize
 
         return [x, y]
     }
@@ -224,19 +226,20 @@ class Cells {
               height = this.canvas.height - canvPad,
               width = this.canvas.width - canvPad,
               cellPad = this.cellPadding,
-              tSize = this.tokenSize
+              tSize = this.tokenSize,
+              pSize = this.panelSize
 
         if(
-            (coords[0] < canvPad || coords[1] < canvPad) ||
+            (coords[0] < canvPad || coords[1] < canvPad + pSize) ||
             (coords[0] > width || coords[1] > height)
         ){
             return null
         }
 
         const toCellX = (coords[0] - canvPad) % (tSize + cellPad * 2),
-              toCellY = (coords[1] - canvPad) % (tSize + cellPad * 2),
+              toCellY = (coords[1] - (canvPad + pSize)) % (tSize + cellPad * 2),
               x = Math.floor((coords[0] - canvPad) / (tSize + cellPad * 2)),
-              y = Math.floor((coords[1] - canvPad) / (tSize + cellPad * 2))
+              y = Math.floor((coords[1] - (canvPad + pSize)) / (tSize + cellPad * 2))
 
         return (
             (toCellX > cellPad && toCellY > cellPad) &&
@@ -244,7 +247,7 @@ class Cells {
                 (toCellX < tSize + Math.floor(cellPad * 1.4)) && 
                 (toCellY < tSize + Math.floor(cellPad * 1.4))
             )
-        ) ? [y,x] : null
+        ) ? [y, x] : null
     }
 
     _isComplete(){
@@ -303,13 +306,13 @@ class Cells {
         board.setItem(to, fromToken)
 
         if(toToken && toToken instanceof Token){
-            toToken.x = fromPixelCoords[1]
-            toToken.y = fromPixelCoords[0]
+            toToken.x = fromPixelCoords[0]
+            toToken.y = fromPixelCoords[1]
         }
 
         if(fromToken && fromToken instanceof Token){
-            fromToken.x = toPixelCoords[1]
-            fromToken.y = toPixelCoords[0]
+            fromToken.x = toPixelCoords[0]
+            fromToken.y = toPixelCoords[1]
         }
     }
 
@@ -395,13 +398,11 @@ Cells.load: the argument must be an Array[ ${this._board.length} ]`)
         data.forEach((primitive, i) => {
 
             // board coordinates
-            const item = Math.floor(i / this._board.cols),
-                  line = i % this._board.cols,
-                  // pixel coords
-                  [cX, cY] = this._cellPixelCoords([line, item]),
-                  [x, y] = this._tokenPixelCoords([line, item])
+            const coord = this._indexToCoord(i),
+                  [cX, cY] = this._cellPixelCoords(coord),
+                  [x, y] = this._tokenPixelCoords(coord)
             
-            const cell = this._board.getCell([item, line])
+            const cell = this._board.getCell(coord)
 
             cell.label = primitive
             cell.x = cX
@@ -414,6 +415,14 @@ Cells.load: the argument must be an Array[ ${this._board.length} ]`)
     draw(){
 
         this._clear()
+
+        this.ctx.fillStyle = '#aaa'
+        this.ctx.fillRect(
+            0 + this.canvasPadding,
+            0 + this.canvasPadding,
+            this.canvas.width - this.canvasPadding * 2,
+            this.panelSize - this.canvasPadding
+        )
 
         for(let i = 0, len = this._board.length; i < len; i++){
 
