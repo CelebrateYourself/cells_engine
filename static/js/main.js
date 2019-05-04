@@ -488,6 +488,21 @@ Cells.load: the argument must be an Array[ ${this._board.length} ]`)
             this.canvas.width / 2,
             this.panelSize * 0.6
         )*/
+
+        this.ctx.fillStyle = '#666'
+        this.ctx.fillRect(
+            this.canvas.width / 2 - this.panelSize * 0.14,
+            this.panelSize * 0.3,
+            this.panelSize * 0.2,
+            this.panelSize * 0.5
+        )
+
+        this.ctx.fillRect(
+            this.canvas.width / 2 + this.panelSize * 0.14,
+            this.panelSize * 0.3,
+            this.panelSize * 0.2,
+            this.panelSize * 0.5
+        )
         this.ctx.shadowBlur = 0
 
         for(let i = 0, len = this._board.length; i < len; i++){
