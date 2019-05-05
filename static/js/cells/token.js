@@ -76,16 +76,12 @@ class ActiveToken extends Token {
         ctx.fillStyle = config.textFillStyle
         ctx.textAlign = config.textAlign
         ctx.textBaseline = config.textBaseline
-        ctx.shadowBlur = config.textShadowBlur
-        ctx.shadowColor = config.textShadowColor
         ctx.fillText(
             String(this.value),
             x + config.localTextX,
             y + config.localTextY,
             config.textMaxWidth
         )
-        // reset shadow effect
-        ctx.shadowBlur = 0 
     }
 }
 
@@ -154,8 +150,6 @@ class HeavyPassiveToken extends PassiveToken {
         ctx.fillStyle = config.textFillStyle
         ctx.textAlign = config.textAlign
         ctx.textBaseline = config.textBaseline
-        ctx.shadowColor = config.textShadowColor
-        ctx.shadowBlur = config.textShadowBlur
         ctx.fillText(
             String.fromCharCode(59455),
             x + config.localTextX,
@@ -194,8 +188,6 @@ class LightPassiveToken extends PassiveToken {
         ctx.fillStyle = config.textFillStyle
         ctx.textAlign = config.textAlign
         ctx.textBaseline = config.textBaseline
-        ctx.shadowColor = config.textShadowColor
-        ctx.shadowBlur = config.textShadowBlur
         ctx.fillText(
             String.fromCharCode(61872),
             x + config.localTextX,

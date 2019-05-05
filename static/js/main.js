@@ -28,19 +28,20 @@ class Cells {
         this.element = document.querySelector(selector)
         this.canvas = document.createElement('canvas')
         this.ctx = this.canvas.getContext('2d')
+        this.backgroundColor = '#fff'
 
         // in board coords
         this.cursor = null
         this.selected = null
         this._eventQueue = []
-
+        
         this.panelSize = Math.floor(this.cellSize * 0.8)
-
+        
         // text
-        this.baseFontSize = Math.floor(this.cellSize * 0.29)
-        this.textFont = `bold ${ this.baseFontSize }px 'Georgia', serif`
+        this.baseFontSize = Math.floor(this.cellSize * 0.3)
+        this.textFont = `900 ${ this.baseFontSize }px 'Montserrat', serif`
         this.picFont = `${ this.baseFontSize * 2 }px 'Icons'`
-
+        
         // paddings & styles
         this.canvasPadding = Math.floor(this.cellSize * 0.05)
         this.cellPadding = Math.floor(this.cellSize * 0.05)
@@ -67,11 +68,9 @@ class Cells {
             textFillStyle: '#999',
             textAlign: 'center',
             textBaseline: 'middle',
-            textShadowBlur: 1,
-            textShadowColor: '#666',
             textMaxWidth: Math.floor(this.cellSize * 0.70),
             localTextX: Math.floor(this.cellSize / 2),
-            localTextY: Math.floor(this.cellSize / 1.8)
+            localTextY: Math.floor(this.cellSize / 1.9)
         })
 
         this._baseConfig = Object.freeze({
@@ -92,14 +91,12 @@ class Cells {
             tokenShadowOffsetY: Math.floor(this.tokenSize * 0.04),
             // text
             font: this.textFont,
-            textFillStyle: '#444',
+            textFillStyle: '#555',
             textAlign: 'center',
             textBaseline: 'middle',
-            textShadowBlur: 1,
-            textShadowColor: '#111',
             textMaxWidth: Math.floor(this.tokenSize * 0.75),
             localTextX: Math.floor(this.tokenSize / 2),
-            localTextY: Math.floor(this.tokenSize / 1.8),
+            localTextY: Math.floor(this.tokenSize / 1.9),
         })
 
         this._heavyPassiveConfig = Object.freeze({
@@ -114,8 +111,6 @@ class Cells {
             textFillStyle: '#777',
             textAlign: 'center',
             textBaseline: 'middle',
-            textShadowColor: '#666',
-            textShadowBlur: 1,
             textMaxWidth: Math.floor(this.tokenSize * 0.75),
             localTextX: Math.floor(this.tokenSize / 2),
             localTextY: Math.floor(this.tokenSize / 1.9), 
@@ -129,8 +124,6 @@ class Cells {
             textFillStyle: '#777',
             textAlign: 'center',
             textBaseline: 'middle',
-            textShadowColor: '#666',
-            textShadowBlur: 1,
             textMaxWidth: Math.floor(this.tokenSize * 0.75),
             localTextX: Math.floor(this.tokenSize / 2),
             localTextY: Math.floor(this.tokenSize / 1.9), 
@@ -138,18 +131,13 @@ class Cells {
 
         this._timerConfig = Object.freeze({
             ctx: this.ctx,
-            x: this.panelSize * 0.2,
-            y: this.panelSize * 0.6,
+            x: Math.floor(this.panelSize * 0.18),
+            y: Math.floor(this.panelSize * 0.6),
             // text
             font: this.textFont,
-            textFillStyle: '#555',
+            textFillStyle: '#666',
             textAlign: 'left',
             textBaseline: 'middle',
-            textShadowColor: '#111',
-            textShadowBlur: 1,
-            textMaxWidth: Math.floor(this.tokenSize * 0.75),
-            localTextX: Math.floor(this.tokenSize / 2),
-            localTextY: Math.floor(this.tokenSize / 1.9), 
         })
 
         this._counterConfig = Object.freeze({
@@ -158,14 +146,9 @@ class Cells {
             y: Math.floor(this.panelSize * 0.6),
             // text
             font: this.textFont,
-            textFillStyle: '#555',
+            textFillStyle: '#666',
             textAlign: 'right',
             textBaseline: 'middle',
-            textShadowColor: '#111',
-            textShadowBlur: 1,
-            textMaxWidth: Math.floor(this.tokenSize * 0.75),
-            localTextX: Math.floor(this.tokenSize / 2),
-            localTextY: Math.floor(this.tokenSize / 1.9), 
         })
     }
 
@@ -388,7 +371,7 @@ class Cells {
     _clear(){
         const ctx = this.ctx
         ctx.clearRect(0, 0, this.canvas.width, this.canvas.height)
-        ctx.fillStyle = '#fff'
+        ctx.fillStyle = this.backgroundColor
         ctx.fillRect(0, 0, this.canvas.width, this.canvas.height)
     }
 
@@ -462,33 +445,22 @@ Cells.load: the argument must be an Array[ ${this._board.length} ]`)
     draw(){
 
         this._clear()
-        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height)
-        this._drawPanel()
+
+        //this._drawPanel()
+
         this._timer.draw(this._timerConfig)
         this._counter.draw(this._counterConfig)
 
-        this.ctx.shadowBlur = 0
+        // line
         this.ctx.lineWidth = this.panelSize * 0.05
-        this.ctx.strokeStyle = '#555'
+        this.ctx.strokeStyle = '#666'
         this.ctx.beginPath()
         this.ctx.moveTo(0, this.panelSize * 0.99)
         this.ctx.lineTo(this.canvas.width, this.panelSize * 0.99)
         this.ctx.stroke()
         this.ctx.lineWidth = 0
 
-        /*
-        this.ctx.shadowBlur = 1
-        this.ctx.shadowColor = '#111'
-        //this.ctx.font = this.textFont
-        this.ctx.fillStyle = '#555'
-        this.ctx.textAlign = 'center'
-        this.ctx.textBaseline = 'middle'
-        this.ctx.fillText(
-            'Pause',
-            this.canvas.width / 2,
-            this.panelSize * 0.6
-        )*/
-
+/*
         this.ctx.fillStyle = '#666'
         this.ctx.fillRect(
             this.canvas.width / 2 - this.panelSize * 0.14,
@@ -503,7 +475,7 @@ Cells.load: the argument must be an Array[ ${this._board.length} ]`)
             this.panelSize * 0.2,
             this.panelSize * 0.5
         )
-        this.ctx.shadowBlur = 0
+        */
 
         for(let i = 0, len = this._board.length; i < len; i++){
 
@@ -527,7 +499,7 @@ Cells.load: the argument must be an Array[ ${this._board.length} ]`)
 
                 const s = this.selected
                 if(s && (s[0] === coords[0] && s[1] === coords[1])){
-                    changes.tokenFillColor = '#888'
+                    changes.tokenFillColor = '#8f8f8f'
                 }
 
                 const c = this.cursor
@@ -580,11 +552,11 @@ Cells.load: the argument must be an Array[ ${this._board.length} ]`)
 }
 
 /*************  Test  ****************/
-const size = [3, 5]
+const size = [3, 4]
 const map = [
-    1, 2, 3, 4, 5,
-    'heavy', null, 'light', 6, 7,
-    8, 9, 10,  null, 'heavy',
+    1, 2, 3, 4,
+    'heavy', null, 'light', 6,
+    7, 8, 9, null
 ]
 
 

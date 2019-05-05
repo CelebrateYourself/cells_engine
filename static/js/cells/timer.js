@@ -24,15 +24,11 @@ export class Timer {
         ctx.fillStyle = config.textFillStyle
         ctx.textAlign = config.textAlign
         ctx.textBaseline = config.textBaseline
-        ctx.shadowBlur = config.textShadowBlur
-        ctx.shadowColor = config.textShadowColor
         ctx.fillText(
             this.toString(),
             config.x,
             config.y,
         )
-        // reset shadow effect
-        ctx.shadowBlur = 0
     }
 
     update(){

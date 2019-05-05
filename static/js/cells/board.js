@@ -88,15 +88,11 @@ class Cell {
         ctx.fillStyle = config.textFillStyle
         ctx.textAlign = config.textAlign
         ctx.textBaseline = config.textBaseline
-        ctx.shadowBlur = config.textShadowBlur
-        ctx.shadowColor = config.textShadowColor
         ctx.fillText(
             String(this.label || ''),
             this.x + config.localTextX,
             this.y + config.localTextY,
             config.textMaxWidth
         )
-        // reset shadow effect
-        ctx.shadowBlur = 0
     }
 }
