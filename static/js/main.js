@@ -35,7 +35,7 @@ class Cells {
         this.selected = null
         this._eventQueue = []
         
-        this.panelSize = Math.floor(this.cellSize * 0.8)
+        this.panelSize = Math.floor(this.cellSize * 0.7)
         
         // text
         this.baseFontSize = Math.floor(this.cellSize * 0.3)
@@ -70,7 +70,7 @@ class Cells {
             textBaseline: 'middle',
             textMaxWidth: Math.floor(this.cellSize * 0.70),
             localTextX: Math.floor(this.cellSize / 2),
-            localTextY: Math.floor(this.cellSize / 1.9)
+            localTextY: Math.floor(this.cellSize / 1.8)
         })
 
         this._baseConfig = Object.freeze({
@@ -96,7 +96,7 @@ class Cells {
             textBaseline: 'middle',
             textMaxWidth: Math.floor(this.tokenSize * 0.75),
             localTextX: Math.floor(this.tokenSize / 2),
-            localTextY: Math.floor(this.tokenSize / 1.9),
+            localTextY: Math.floor(this.tokenSize / 1.8),
         })
 
         this._heavyPassiveConfig = Object.freeze({
@@ -555,8 +555,8 @@ Cells.load: the argument must be an Array[ ${this._board.length} ]`)
 const size = [3, 4]
 const map = [
     1, 2, 3, 4,
-    'heavy', null, 'light', 6,
-    7, 8, 9, null
+    'heavy', null, 'light', 5,
+    6, 7, 8, null
 ]
 
 
