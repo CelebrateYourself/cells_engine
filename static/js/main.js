@@ -131,7 +131,7 @@ class Cells {
 
         this._timerConfig = Object.freeze({
             ctx: this.ctx,
-            x: Math.floor(this.panelSize * 0.18),
+            x: Math.floor(this.canvasPadding + this.cellPadding),
             y: Math.floor(this.panelSize * 0.6),
             // text
             font: this.textFont,
@@ -142,7 +142,7 @@ class Cells {
 
         this._counterConfig = Object.freeze({
             ctx: this.ctx,
-            x: Math.floor(this.canvas.width * 0.97),
+            x: Math.floor(this.canvas.width - (this.canvasPadding + this.cellPadding)),
             y: Math.floor(this.panelSize * 0.6),
             // text
             font: this.textFont,
@@ -437,7 +437,7 @@ Cells.load: the argument must be an Array[ ${this._board.length} ]`)
 
     _drawPanel(){
         this.ctx.shadowBlur = 0
-        this.ctx.fillStyle = '#ddd'
+        this.ctx.fillStyle = '#bbb'
         this.ctx.fillRect(0, 0, this.canvas.width, this.panelSize)
     }
 
@@ -451,31 +451,89 @@ Cells.load: the argument must be an Array[ ${this._board.length} ]`)
         this._timer.draw(this._timerConfig)
         this._counter.draw(this._counterConfig)
 
-        // line
-        this.ctx.lineWidth = this.panelSize * 0.05
+        // panel line
+        this.ctx.lineWidth = Math.floor(this.cellSize * 0.04)
         this.ctx.strokeStyle = '#666'
         this.ctx.beginPath()
         this.ctx.moveTo(0, this.panelSize * 0.99)
         this.ctx.lineTo(this.canvas.width, this.panelSize * 0.99)
         this.ctx.stroke()
+        this.ctx.closePath()
         this.ctx.lineWidth = 0
-
 /*
-        this.ctx.fillStyle = '#666'
+        // pause button
+        const radius = Math.floor(this.panelSize * 0.35)
+
+        this.ctx.lineWidth = Math.floor(this.panelSize * 0.1)
+        // this.ctx.lineWidth = Math.floor(this.panelSize * 0.15)
+        this.ctx.strokeStyle = '#ddd'
+        this.ctx.fillStyle = '#999'
+        this.ctx.beginPath()
+        this.ctx.arc(
+            Math.floor(this.canvas.width / 2),
+            Math.floor(this.panelSize / 2),
+            radius,
+            0,
+            Math.PI * 2 
+        )
+        this.ctx.fill()
+        this.ctx.stroke()
+
+        // pause rects
+        const width = Math.floor(radius / 2)
+        const height = radius
+        const padding = Math.floor(this.panelSize * 0.03)
+
+        this.ctx.fillStyle = '#fff'
         this.ctx.fillRect(
-            this.canvas.width / 2 - this.panelSize * 0.14,
-            this.panelSize * 0.3,
-            this.panelSize * 0.2,
-            this.panelSize * 0.5
+            Math.floor(this.canvas.width / 2 - padding - width),
+                Math.floor(this.panelSize / 2 - radius * 0.5),
+            width,
+            height
         )
 
         this.ctx.fillRect(
-            this.canvas.width / 2 + this.panelSize * 0.14,
-            this.panelSize * 0.3,
-            this.panelSize * 0.2,
-            this.panelSize * 0.5
+            Math.floor(this.canvas.width / 2 + padding),
+                Math.floor(this.panelSize / 2 - radius * 0.5),
+            width,
+            height
+        )*/
+
+        const radius = Math.floor(this.panelSize * 0.35)
+
+        this.ctx.lineWidth = Math.floor(this.panelSize * 0.1)
+        // this.ctx.lineWidth = Math.floor(this.panelSize * 0.15)
+        this.ctx.strokeStyle = '#ddd'
+        this.ctx.fillStyle = '#999'
+        this.ctx.beginPath()
+        this.ctx.arc(
+            Math.floor(this.canvas.width / 2),
+            Math.floor(this.panelSize / 2),
+            radius,
+            0,
+            Math.PI * 2 
         )
-        */
+        this.ctx.fill()
+        this.ctx.stroke()
+
+        // pause triangle
+        this.ctx.fillStyle = '#fff'
+        this.ctx.beginPath()
+        this.ctx.lineTo(
+            Math.floor(this.canvas.width /2 - radius * 0.35),
+            Math.floor(this.panelSize / 2 - radius * 0.55)
+        )
+        this.ctx.lineTo(
+            Math.floor(this.canvas.width /2 + radius * 0.6),
+            Math.floor(this.panelSize / 2)
+        )
+        this.ctx.lineTo(
+            Math.floor(this.canvas.width /2 - radius * 0.35),
+            Math.floor(this.panelSize / 2 + radius * 0.55)
+        )
+        this.ctx.fill()
+        this.ctx.closePath()
+
 
         for(let i = 0, len = this._board.length; i < len; i++){
 
