@@ -145,7 +145,7 @@ class Cells {
 
         this._counterConfig = Object.freeze({
             ctx: this.ctx,
-            x: Math.floor(this.canvas.width - (this.canvasPadding + this.cellPadding)),
+            x: Math.floor(this.canvas.width / 2),
             y: Math.floor(this.panelSize * 0.6),
             // text
             font: this.panelFont,
@@ -466,6 +466,42 @@ Cells.load: the argument must be an Array[ ${this._board.length} ]`)
 
         // ========================
 
+        const ctx = this.ctx
+        const rightPadding = this.canvasPadding + this.cellPadding
+        const buttonSize = this.panelFontSize
+        let x = Math.floor(this.canvas.width - (buttonSize / 2 + rightPadding))
+        const y = Math.floor(this.panelSize * 0.6) 
+        const radius = Math.floor(buttonSize * 0.4)
+        
+        ctx.lineWidth = Math.floor(buttonSize * 0.2)        
+        ctx.strokeStyle = '#aaa'
+
+        // close
+        ctx.beginPath()
+        ctx.moveTo(x - radius, y - radius)
+        ctx.lineTo(x + radius, y + radius)
+        ctx.moveTo(x - radius, y + radius)
+        ctx.lineTo(x + radius, y - radius)
+        ctx.stroke()
+        ctx.closePath()
+
+        // reload
+        x -= buttonSize + 5
+        ctx.beginPath()
+        ctx.arc(x, y, radius, Math.PI * 0.3, Math.PI * 1.85)
+        ctx.stroke()
+        ctx.closePath()
+
+        // pause
+        x -= buttonSize + 5
+        ctx.fillStyle = '#aaa'
+        ctx.beginPath()
+        ctx.moveTo(x - radius, y - radius)
+        ctx.lineTo(x + radius, y)
+        ctx.lineTo(x - radius, y + radius)
+        ctx.fill()
+        ctx.closePath()
+        /*
         // pause button
         const radius = Math.floor(this.panelSize * 0.35)
 
@@ -500,7 +536,7 @@ Cells.load: the argument must be an Array[ ${this._board.length} ]`)
                 Math.floor(this.panelSize / 2 - radius * 0.5),
             width,
             height
-        )
+        )*/
 /*
         const radius = Math.floor(this.panelSize * 0.35)
 
