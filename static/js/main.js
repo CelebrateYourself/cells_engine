@@ -39,8 +39,11 @@ class Cells {
         
         // text
         this.baseFontSize = Math.floor(this.cellSize * 0.3)
-        this.textFont = `900 ${ this.baseFontSize }px 'Montserrat', serif`
-        this.picFont = `${ this.baseFontSize * 2 }px 'Icons'`
+        this.panelFontSize = Math.floor(this.baseFontSize * 0.9)
+    
+        this.cellFont = `900 ${ this.baseFontSize }px 'Montserrat', serif`
+        this.cellPicFont = `${ this.baseFontSize * 2 }px 'Icons'`
+        this.panelFont = `bold ${ this.panelFontSize }px 'Montserrat', serif`
         
         // paddings & styles
         this.canvasPadding = Math.floor(this.cellSize * 0.05)
@@ -64,7 +67,7 @@ class Cells {
 
         this._cellConfig = Object.freeze({
             ctx: this.ctx,
-            font: this.textFont,
+            font: this.cellFont,
             textFillStyle: '#999',
             textAlign: 'center',
             textBaseline: 'middle',
@@ -90,7 +93,7 @@ class Cells {
             tokenShadowOffsetX: Math.floor(this.tokenSize * 0.04),
             tokenShadowOffsetY: Math.floor(this.tokenSize * 0.04),
             // text
-            font: this.textFont,
+            font: this.cellFont,
             textFillStyle: '#555',
             textAlign: 'center',
             textBaseline: 'middle',
@@ -107,7 +110,7 @@ class Cells {
             tokenBorderDashEmptySize: Math.floor(this.tokenSize * 0.05),
             tokenFillColor: '#fff',
             // text
-            font: this.picFont,
+            font: this.cellPicFont,
             textFillStyle: '#777',
             textAlign: 'center',
             textBaseline: 'middle',
@@ -120,7 +123,7 @@ class Cells {
             // token
             tokenFillColor: '#fff',
             // text
-            font: this.picFont,
+            font: this.cellPicFont,
             textFillStyle: '#777',
             textAlign: 'center',
             textBaseline: 'middle',
@@ -134,7 +137,7 @@ class Cells {
             x: Math.floor(this.canvasPadding + this.cellPadding),
             y: Math.floor(this.panelSize * 0.6),
             // text
-            font: this.textFont,
+            font: this.panelFont,
             textFillStyle: '#666',
             textAlign: 'left',
             textBaseline: 'middle',
@@ -145,7 +148,7 @@ class Cells {
             x: Math.floor(this.canvas.width - (this.canvasPadding + this.cellPadding)),
             y: Math.floor(this.panelSize * 0.6),
             // text
-            font: this.textFont,
+            font: this.panelFont,
             textFillStyle: '#666',
             textAlign: 'right',
             textBaseline: 'middle',
@@ -460,14 +463,15 @@ Cells.load: the argument must be an Array[ ${this._board.length} ]`)
         this.ctx.stroke()
         this.ctx.closePath()
         this.ctx.lineWidth = 0
-/*
+
+        // ========================
+
         // pause button
         const radius = Math.floor(this.panelSize * 0.35)
 
         this.ctx.lineWidth = Math.floor(this.panelSize * 0.1)
         // this.ctx.lineWidth = Math.floor(this.panelSize * 0.15)
-        this.ctx.strokeStyle = '#ddd'
-        this.ctx.fillStyle = '#999'
+        this.ctx.strokeStyle = '#ccc'
         this.ctx.beginPath()
         this.ctx.arc(
             Math.floor(this.canvas.width / 2),
@@ -476,7 +480,6 @@ Cells.load: the argument must be an Array[ ${this._board.length} ]`)
             0,
             Math.PI * 2 
         )
-        this.ctx.fill()
         this.ctx.stroke()
 
         // pause rects
@@ -484,7 +487,7 @@ Cells.load: the argument must be an Array[ ${this._board.length} ]`)
         const height = radius
         const padding = Math.floor(this.panelSize * 0.03)
 
-        this.ctx.fillStyle = '#fff'
+        this.ctx.fillStyle = '#ccc'
         this.ctx.fillRect(
             Math.floor(this.canvas.width / 2 - padding - width),
                 Math.floor(this.panelSize / 2 - radius * 0.5),
@@ -497,14 +500,13 @@ Cells.load: the argument must be an Array[ ${this._board.length} ]`)
                 Math.floor(this.panelSize / 2 - radius * 0.5),
             width,
             height
-        )*/
-
+        )
+/*
         const radius = Math.floor(this.panelSize * 0.35)
 
         this.ctx.lineWidth = Math.floor(this.panelSize * 0.1)
         // this.ctx.lineWidth = Math.floor(this.panelSize * 0.15)
-        this.ctx.strokeStyle = '#ddd'
-        this.ctx.fillStyle = '#999'
+        this.ctx.strokeStyle = '#ccc'
         this.ctx.beginPath()
         this.ctx.arc(
             Math.floor(this.canvas.width / 2),
@@ -513,11 +515,10 @@ Cells.load: the argument must be an Array[ ${this._board.length} ]`)
             0,
             Math.PI * 2 
         )
-        this.ctx.fill()
         this.ctx.stroke()
 
         // pause triangle
-        this.ctx.fillStyle = '#fff'
+        this.ctx.fillStyle = '#ccc'
         this.ctx.beginPath()
         this.ctx.lineTo(
             Math.floor(this.canvas.width /2 - radius * 0.35),
@@ -533,7 +534,7 @@ Cells.load: the argument must be an Array[ ${this._board.length} ]`)
         )
         this.ctx.fill()
         this.ctx.closePath()
-
+*/
 
         for(let i = 0, len = this._board.length; i < len; i++){
 
