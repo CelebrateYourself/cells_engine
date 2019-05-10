@@ -31,11 +31,14 @@ class Cells {
         this.backgroundColor = '#fff'
 
         // in board coords
-        this.cursor = null
+        this.hoverToken = null
         this.selected = null
+
         this._eventQueue = []
-        
-        this.panelSize = Math.floor(this.cellSize * 0.7)
+
+        this.paused = false
+        // button name
+        this.hoverButton = null
         
         // text
         this.baseFontSize = Math.floor(this.cellSize * 0.3)
@@ -50,6 +53,12 @@ class Cells {
         this.cellPadding = Math.floor(this.cellSize * 0.05)
         this.rectRound = Math.floor(this.cellSize * 0.07)
         this.tokenSize = this.cellSize - this.cellPadding * 2
+
+        // menu panel
+        this.panelSize = Math.floor(this.cellSize * 0.7)
+        this.panelBasePadding = this.canvasPadding + this.cellPadding
+        this.panelButtonSize = this.panelFontSize
+        this.panelButtonMargin = this.panelButtonSize * 0.4
 
         this.canvas.width = this.cellSize * this._board.cols + this.canvasPadding * 2
         this.canvas.height = (
@@ -150,8 +159,26 @@ class Cells {
             // text
             font: this.panelFont,
             textFillStyle: '#666',
-            textAlign: 'right',
+            textAlign: 'center',
             textBaseline: 'middle',
+        })
+
+        this._panelConfig = Object.freeze({
+            ctx: this.ctx,
+            panelBackground: '#fff',  // '#999',
+            bottomLineY: Math.floor(this.panelSize * 0.99),
+            bottomLineWidth: Math.floor(this.cellSize * 0.04),
+            bottomLineStrokeStyle: '#666',
+            iconRadius: Math.floor(this.panelButtonSize * 0.45),
+            iconLineWidth: Math.floor(this.panelButtonSize * 0.15),
+            iconStrokeStyle: '#bbb',
+            iconCenterY: Math.floor(this.panelSize * 0.55),
+            closeCenterX: Math.floor(this.canvas.width - (this.panelButtonSize * 0.5 + this.panelBasePadding)),
+            reloadCenterX: Math.floor(this.canvas.width - (this.panelButtonSize * 1.5 + this.panelBasePadding + this.panelButtonMargin)),
+            reloadCircleRads: [Math.PI * 0.3, Math.PI * 1.85],
+            pauseCenterX: Math.floor(this.canvas.width - (this.panelButtonSize * 2.5 + this.panelBasePadding + this.panelButtonMargin * 2)),
+            pauseIconFill: '#bbb',
+            hoverIconStyle: '#999'
         })
     }
 
@@ -165,7 +192,8 @@ class Cells {
 
             this.canvas.addEventListener('mouseleave', (function(e){
                 this.canvas.removeEventListener('mousemove', moveHandler, false)
-                this.cursor = null
+                this.hoverToken = null
+                this.hoverButton = null
             }).bind(this), false)
 
             this.canvas.addEventListener('mousemove', moveHandler, false)
@@ -180,15 +208,17 @@ class Cells {
 
     _onHover(e){
         const cursorPix = this._canvasPixelCoords(e),
-              hoverCoords = this._getHoverCoords(cursorPix),
-              cursorType = hoverCoords ? 'pointer' : 'default'
+              hoverCell = this._hoverTokenCoords(cursorPix),
+              hoverButton = this._hoverButtonCoords(cursorPix),
+              cursorType = (hoverCell || hoverButton) ? 'pointer' : 'default'
             
-        this.cursor = hoverCoords
+        this.hoverToken = hoverCell
+        this.hoverButton = hoverButton
         this.canvas.style.cursor = cursorType
     }
 
     _onClick(e){
-        const coords = this._getHoverCoords(this._canvasPixelCoords(e))
+        const coords = this._hoverTokenCoords(this._canvasPixelCoords(e))
 
         if(!coords){
             return
@@ -246,7 +276,7 @@ class Cells {
     }
 
     // returns null or token board coords if cursor is on it
-    _getHoverCoords(coords){
+    _hoverTokenCoords(coords){
         const canvPad = this.canvasPadding,
               height = this.canvas.height - canvPad,
               width = this.canvas.width - canvPad,
@@ -273,6 +303,39 @@ class Cells {
                 (toCellY < tSize + Math.floor(cellPad * 1.4))
             )
         ) ? [y, x] : null
+    }
+
+    _hoverButtonCoords(coords){
+
+        const canvPad = this.canvasPadding,
+              width = this.canvas.width - canvPad,
+              height = this.panelSize
+
+        if(
+            (coords[0] < this.canvas.width / 2 || coords[1] < canvPad) ||
+            (coords[0] > width || coords[1] > height)
+        ){
+            return null
+        }
+
+        const cfg = this._panelConfig,
+              r = cfg.iconRadius * 1.2,
+              size = r * 2,
+              baseX = cfg.closeCenterX - r,
+              baseY = cfg.iconCenterY - r,
+              indent = this.panelButtonSize + this.panelButtonMargin,
+              buttons = ['close', 'reload', 'pause']
+
+        for(let i = 0, len = buttons.length; i < len; i ++){
+            const x = baseX - indent * i,
+                  y = baseY
+
+            if(coords[0] > x && coords[0] < x + size && coords[1] > y && coords[1] < y + size){
+                return buttons[i]
+            }
+        }
+
+        return null
     }
 
     _isComplete(){
@@ -371,13 +434,6 @@ class Cells {
         }
     }
 
-    _clear(){
-        const ctx = this.ctx
-        ctx.clearRect(0, 0, this.canvas.width, this.canvas.height)
-        ctx.fillStyle = this.backgroundColor
-        ctx.fillRect(0, 0, this.canvas.width, this.canvas.height)
-    }
-
     _shuffle(n){
         let from, to, token
         const len = this._board.length - 1
@@ -437,46 +493,43 @@ Cells.load: the argument must be an Array[ ${this._board.length} ]`)
         })
     }
 
-
-    _drawPanel(){
-        this.ctx.shadowBlur = 0
-        this.ctx.fillStyle = '#bbb'
-        this.ctx.fillRect(0, 0, this.canvas.width, this.panelSize)
+    _clear(){
+        const ctx = this.ctx
+        ctx.shadowBlur = 0
+        ctx.clearRect(0, 0, this.canvas.width, this.canvas.height)
+        ctx.fillStyle = this.backgroundColor
+        ctx.fillRect(0, 0, this.canvas.width, this.canvas.height)
     }
 
+    _drawPanel(config){
 
-    draw(){
+        const ctx = config.ctx
+                       
+        const y = config.iconCenterY,
+              hover = this.hoverButton,
+              baseStyle = config.iconStrokeStyle,
+              hoverStyle = config.hoverIconStyle
+        // x & radius will change
+        let x = config.closeCenterX,
+            radius = config.iconRadius
 
-        this._clear()
-
-        //this._drawPanel()
-
-        this._timer.draw(this._timerConfig)
-        this._counter.draw(this._counterConfig)
+        // panel background
+        this.ctx.fillStyle = config.panelBackground
+        this.ctx.fillRect(0, 0, this.canvas.width, this.panelSize)
 
         // panel line
-        this.ctx.lineWidth = Math.floor(this.cellSize * 0.04)
-        this.ctx.strokeStyle = '#666'
-        this.ctx.beginPath()
-        this.ctx.moveTo(0, this.panelSize * 0.99)
-        this.ctx.lineTo(this.canvas.width, this.panelSize * 0.99)
-        this.ctx.stroke()
-        this.ctx.closePath()
-        this.ctx.lineWidth = 0
+        ctx.lineWidth = config.bottomLineWidth
+        ctx.strokeStyle = config.bottomLineStrokeStyle
+        ctx.beginPath()
+        ctx.moveTo(0, config.bottomLineY)
+        ctx.lineTo(this.canvas.width, config.bottomLineY)
+        ctx.stroke()
+        ctx.closePath()
 
-        // ========================
-
-        const ctx = this.ctx
-        const rightPadding = this.canvasPadding + this.cellPadding
-        const buttonSize = this.panelFontSize
-        let x = Math.floor(this.canvas.width - (buttonSize / 2 + rightPadding))
-        const y = Math.floor(this.panelSize * 0.6) 
-        const radius = Math.floor(buttonSize * 0.4)
-        
-        ctx.lineWidth = Math.floor(buttonSize * 0.2)        
-        ctx.strokeStyle = '#aaa'
+        ctx.lineWidth = config.iconLineWidth
 
         // close
+        ctx.strokeStyle = (hover === 'close') ? hoverStyle : baseStyle
         ctx.beginPath()
         ctx.moveTo(x - radius, y - radius)
         ctx.lineTo(x + radius, y + radius)
@@ -486,91 +539,49 @@ Cells.load: the argument must be an Array[ ${this._board.length} ]`)
         ctx.closePath()
 
         // reload
-        x -= buttonSize + 5
+        x = config.reloadCenterX
+        ctx.strokeStyle = (hover === 'reload') ? hoverStyle : baseStyle
         ctx.beginPath()
-        ctx.arc(x, y, radius, Math.PI * 0.3, Math.PI * 1.85)
+        ctx.arc(x, y, radius, ...config.reloadCircleRads)
         ctx.stroke()
         ctx.closePath()
 
         // pause
-        x -= buttonSize + 5
-        ctx.fillStyle = '#aaa'
+        const padding = radius * 0.4,
+              style = (hover === 'pause') ? hoverStyle : baseStyle
+
+        x = config.pauseCenterX
         ctx.beginPath()
-        ctx.moveTo(x - radius, y - radius)
-        ctx.lineTo(x + radius, y)
-        ctx.lineTo(x - radius, y + radius)
-        ctx.fill()
+        if(this.paused){
+            ctx.fillStyle = style
+            ctx.moveTo(x - radius, y - radius)
+            ctx.lineTo(x + radius, y)
+            ctx.lineTo(x - radius, y + radius)
+            ctx.fill()
+        } else {
+            ctx.strokeStyle = style
+            ctx.moveTo(x - padding, y - radius)
+            ctx.lineTo(x - padding, y + radius)
+            ctx.moveTo(x + padding, y - radius)
+            ctx.lineTo(x + padding, y + radius)
+            ctx.stroke()
+        }
+
         ctx.closePath()
-        /*
-        // pause button
-        const radius = Math.floor(this.panelSize * 0.35)
 
-        this.ctx.lineWidth = Math.floor(this.panelSize * 0.1)
-        // this.ctx.lineWidth = Math.floor(this.panelSize * 0.15)
-        this.ctx.strokeStyle = '#ccc'
-        this.ctx.beginPath()
-        this.ctx.arc(
-            Math.floor(this.canvas.width / 2),
-            Math.floor(this.panelSize / 2),
-            radius,
-            0,
-            Math.PI * 2 
-        )
-        this.ctx.stroke()
+        if(this.hoverButton){
+            ctx.fillStyle = '#666'
+            ctx.fillRect(...this.hoverButton)
+        }
+    } // _drawPanel
 
-        // pause rects
-        const width = Math.floor(radius / 2)
-        const height = radius
-        const padding = Math.floor(this.panelSize * 0.03)
 
-        this.ctx.fillStyle = '#ccc'
-        this.ctx.fillRect(
-            Math.floor(this.canvas.width / 2 - padding - width),
-                Math.floor(this.panelSize / 2 - radius * 0.5),
-            width,
-            height
-        )
+    draw(){
 
-        this.ctx.fillRect(
-            Math.floor(this.canvas.width / 2 + padding),
-                Math.floor(this.panelSize / 2 - radius * 0.5),
-            width,
-            height
-        )*/
-/*
-        const radius = Math.floor(this.panelSize * 0.35)
-
-        this.ctx.lineWidth = Math.floor(this.panelSize * 0.1)
-        // this.ctx.lineWidth = Math.floor(this.panelSize * 0.15)
-        this.ctx.strokeStyle = '#ccc'
-        this.ctx.beginPath()
-        this.ctx.arc(
-            Math.floor(this.canvas.width / 2),
-            Math.floor(this.panelSize / 2),
-            radius,
-            0,
-            Math.PI * 2 
-        )
-        this.ctx.stroke()
-
-        // pause triangle
-        this.ctx.fillStyle = '#ccc'
-        this.ctx.beginPath()
-        this.ctx.lineTo(
-            Math.floor(this.canvas.width /2 - radius * 0.35),
-            Math.floor(this.panelSize / 2 - radius * 0.55)
-        )
-        this.ctx.lineTo(
-            Math.floor(this.canvas.width /2 + radius * 0.6),
-            Math.floor(this.panelSize / 2)
-        )
-        this.ctx.lineTo(
-            Math.floor(this.canvas.width /2 - radius * 0.35),
-            Math.floor(this.panelSize / 2 + radius * 0.55)
-        )
-        this.ctx.fill()
-        this.ctx.closePath()
-*/
+        this._clear()
+        this._drawPanel(this._panelConfig)
+        this._timer.draw(this._timerConfig)
+        this._counter.draw(this._counterConfig)
 
         for(let i = 0, len = this._board.length; i < len; i++){
 
@@ -597,7 +608,7 @@ Cells.load: the argument must be an Array[ ${this._board.length} ]`)
                     changes.tokenFillColor = '#8f8f8f'
                 }
 
-                const c = this.cursor
+                const c = this.hoverToken
                 if(c && (c[0] === coords[0] && c[1] === coords[1])){
                    changes.tokenBorderColor = '#aaa'
                    changes.tokenBorderWidth = Math.floor(this.tokenSize * 0.05)
@@ -651,7 +662,7 @@ const size = [3, 4]
 const map = [
     1, 2, 3, 4,
     'heavy', null, 'light', 5,
-    6, 7, 8, null
+    6, 7, 8, null,
 ]
 
 
