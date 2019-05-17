@@ -15,14 +15,19 @@ class Cells {
 
     constructor(selector, size, config){
 
+        this.PLAY = 'play'
+        this.CLOSE = 'close'
+        this.RELOAD = 'reload'
+        this.VICTORY = 'victory'
+
         this.cellSize = 0  // base value
         
         Object.assign(this, config)
         
         // model
-        this._board = new Board(size)
-        this._timer = new Timer()
-        this._counter = new Counter()
+        this.board = new Board(size)
+        this.timer = new Timer()
+        this.counter = new Counter()
 
         // root and canvas HTMLElement
         this.element = document.querySelector(selector)
@@ -34,9 +39,11 @@ class Cells {
         this.hoverToken = null
         this.selected = null
 
-        this._eventQueue = []
-
+        this.eventQueue = []
+        
+        this.changed = true
         this.paused = false
+        this.state = this.PLAY
         // button name
         this.hoverButton = null
         
@@ -60,21 +67,21 @@ class Cells {
         this.panelButtonSize = this.panelFontSize
         this.panelButtonMargin = this.panelButtonSize * 0.4
 
-        this.canvas.width = this.cellSize * this._board.cols + this.canvasPadding * 2
+        this.canvas.width = this.cellSize * this.board.cols + this.canvasPadding * 2
         this.canvas.height = (
-            this.cellSize * this._board.rows + 
+            this.cellSize * this.board.rows + 
             this.canvasPadding * 2 + this.panelSize
         )
         
         this.element.appendChild(this.canvas)
-        this._frameCallback = this._frame.bind(this)
-        this._computeStyles()
-        this._attachEvents()
+        this.frameCallback = this.frame.bind(this)
+        this.computeStyles()
+        this.attachEvents()
     }
 
-    _computeStyles(){
+    computeStyles(){
 
-        this._cellConfig = Object.freeze({
+        this.cellConfig = Object.freeze({
             ctx: this.ctx,
             font: this.cellFont,
             textFillStyle: '#999',
@@ -85,14 +92,14 @@ class Cells {
             localTextY: Math.floor(this.cellSize / 1.8)
         })
 
-        this._baseConfig = Object.freeze({
+        this.baseConfig = Object.freeze({
             ctx: this.ctx,
             tokenSize: this.tokenSize,
             rectRound: this.rectRound,  // round size
             _roundRect: this._roundRect,  // function
         })
 
-        this._activeConfig = Object.freeze({
+        this.activeConfig = Object.freeze({
             // token
             tokenBorderColor: '#bbb',
             tokenBorderWidth: Math.floor(this.tokenSize * 0.02),
@@ -111,7 +118,7 @@ class Cells {
             localTextY: Math.floor(this.tokenSize / 1.8),
         })
 
-        this._heavyPassiveConfig = Object.freeze({
+        this.heavyPassiveConfig = Object.freeze({
             // token
             tokenBorderColor: '#999',
             tokenBorderWidth: Math.floor(this.tokenSize * 0.02),
@@ -128,7 +135,7 @@ class Cells {
             localTextY: Math.floor(this.tokenSize / 1.9), 
         })
 
-        this._lightPassiveConfig = Object.freeze({
+        this.lightPassiveConfig = Object.freeze({
             // token
             tokenFillColor: '#fff',
             // text
@@ -141,7 +148,7 @@ class Cells {
             localTextY: Math.floor(this.tokenSize / 1.9), 
         })
 
-        this._timerConfig = Object.freeze({
+        this.timerConfig = Object.freeze({
             ctx: this.ctx,
             x: Math.floor(this.canvasPadding + this.cellPadding),
             y: Math.floor(this.panelSize * 0.6),
@@ -152,7 +159,7 @@ class Cells {
             textBaseline: 'middle',
         })
 
-        this._counterConfig = Object.freeze({
+        this.counterConfig = Object.freeze({
             ctx: this.ctx,
             x: Math.floor(this.canvas.width / 2),
             y: Math.floor(this.panelSize * 0.6),
@@ -163,7 +170,7 @@ class Cells {
             textBaseline: 'middle',
         })
 
-        this._panelConfig = Object.freeze({
+        this.panelConfig = Object.freeze({
             ctx: this.ctx,
             panelBackground: '#fff',  // '#999',
             bottomLineY: Math.floor(this.panelSize * 0.99),
@@ -182,18 +189,19 @@ class Cells {
         })
     }
 
-    _attachEvents(){
+    attachEvents(){
         // cursor & cursor coords
         this.canvas.addEventListener('mouseover', (function(e){
             
             const moveHandler = (function(e){
-                this._eventQueue.push(this._onHover.bind(this, e))
+                this.eventQueue.push(this.onHover.bind(this, e))
             }).bind(this)
 
             this.canvas.addEventListener('mouseleave', (function(e){
                 this.canvas.removeEventListener('mousemove', moveHandler, false)
                 this.hoverToken = null
                 this.hoverButton = null
+                this.changed = true
             }).bind(this), false)
 
             this.canvas.addEventListener('mousemove', moveHandler, false)
@@ -202,14 +210,14 @@ class Cells {
 
         // click & selected
         this.canvas.addEventListener('click', (function(e){
-            this._eventQueue.push(this._onClick.bind(this, e))
+            this.eventQueue.push(this.onClick.bind(this, e))
         }).bind(this), false)
     }
 
-    _onHover(e){
-        const cursorPix = this._canvasPixelCoords(e),
-              hoverCell = this._hoverTokenCoords(cursorPix),
-              hoverButton = this._hoverButtonCoords(cursorPix),
+    onHover(e){
+        const cursorPix = this.canvasPixelCoords(e),
+              hoverCell = this.hoverTokenCoords(cursorPix),
+              hoverButton = this.hoverButtonCoords(cursorPix),
               cursorType = (hoverCell || hoverButton) ? 'pointer' : 'default'
             
         this.hoverToken = hoverCell
@@ -217,41 +225,57 @@ class Cells {
         this.canvas.style.cursor = cursorType
     }
 
-    _onClick(e){
-        const coords = this._hoverTokenCoords(this._canvasPixelCoords(e))
+    onClick(e){
+        const pixCoords = this.canvasPixelCoords(e),
+              coords = this.hoverTokenCoords(pixCoords),
+              button = this.hoverButtonCoords(pixCoords)
 
-        if(!coords){
+        if(!coords && !button){
             return
         }
 
-        const token = this._board.getItem(coords)
+        if(coords && !this.paused){
 
-        if(token instanceof ActiveToken){
-            this.selected = coords
-        } else if(
-            token === null &&
-            this.selected &&
-            this._isValidMove(this.selected, coords)
-        ){
-            this._change(this.selected, coords)
-            this.selected = null
-            this._eventQueue.push(this._onChange.bind(this))
-            this._eventQueue.push(this._counter.incr.bind(this._counter))
+            const token = this.board.getItem(coords)
+            
+            if(token instanceof ActiveToken){
+                this.selected = coords
+            } else if(
+                token === null &&
+                this.selected &&
+                this.isValidMove(this.selected, coords)
+            ){
+                this.change(this.selected, coords)
+                this.selected = null
+                this.eventQueue.push(this.onChange.bind(this))
+                this.eventQueue.push(this.counter.incr.bind(this.counter))
+            }
+
+        } else if(button){
+            if(button === 'pause'){
+                this.paused ? this.timer.unpause() : this.timer.pause()
+                this.paused = !this.paused
+            } else {
+                this.state = this[button.toUpperCase()]
+            }
+        }
+
+    }
+    
+    onChange(){
+        if(this.isComplete()){
+            this.state = this.VICTORY
         }
     }
 
-    _onChange(){
-        console.log(`isComplete: ${ this._isComplete()} `)
-    }
-
-    _indexToCoord(i){
-        const line = Math.floor(i / this._board.cols),
-              item = i % this._board.cols
+    indexToCoord(i){
+        const line = Math.floor(i / this.board.cols),
+              item = i % this.board.cols
 
         return [line, item]
     }
 
-    _canvasPixelCoords(e){
+    canvasPixelCoords(e){
         const tag = e.target,
               left = tag.offsetLeft,
               top = tag.offsetTop,
@@ -261,7 +285,7 @@ class Cells {
         return [x, y]
     }
 
-    _cellPixelCoords(boardCoords){
+    cellPixelCoords(boardCoords){
         const [line, item] = boardCoords,
               x = item * this.cellSize + this.canvasPadding,
               y = line * this.cellSize + this.canvasPadding + this.panelSize
@@ -270,13 +294,13 @@ class Cells {
     }
 
     // token local pixel coords
-    _tokenPixelCoords(boardCoords){
-        const [x, y] = this._cellPixelCoords(boardCoords)
+    tokenPixelCoords(boardCoords){
+        const [x, y] = this.cellPixelCoords(boardCoords)
         return [x + this.cellPadding, y + this.cellPadding]
     }
 
     // returns null or token board coords if cursor is on it
-    _hoverTokenCoords(coords){
+    hoverTokenCoords(coords){
         const canvPad = this.canvasPadding,
               height = this.canvas.height - canvPad,
               width = this.canvas.width - canvPad,
@@ -305,7 +329,7 @@ class Cells {
         ) ? [y, x] : null
     }
 
-    _hoverButtonCoords(coords){
+    hoverButtonCoords(coords){
 
         const canvPad = this.canvasPadding,
               width = this.canvas.width - canvPad,
@@ -318,7 +342,7 @@ class Cells {
             return null
         }
 
-        const cfg = this._panelConfig,
+        const cfg = this.panelConfig,
               r = cfg.iconRadius * 1.2,
               size = r * 2,
               baseX = cfg.closeCenterX - r,
@@ -338,12 +362,12 @@ class Cells {
         return null
     }
 
-    _isComplete(){
-        const board = this._board,
+    isComplete(){
+        const board = this.board,
               len = board.length
 
         for(let i = 0; i < len; i++){
-            const cell = board.getCell(this._indexToCoord(i)),
+            const cell = board.getCell(this.indexToCoord(i)),
                   token = cell.token
             if(cell.label !== (token ? token.value : token)){
                 return false
@@ -354,7 +378,7 @@ class Cells {
     }
 
     // from & to in border coords
-    _isValidMove(from, to){
+    isValidMove(from, to){
         if(from[0] !== to[0] && from[1] !== to[1]){
             return false
         }
@@ -364,7 +388,7 @@ class Cells {
               pos = [from[0] + xStep, from[1] + yStep]
 
         while(!(pos[0] === to[0] && pos[1] === to[1])){
-            if(!this._canCrossIt(from, pos)){
+            if(!this.canCrossIt(from, pos)){
                 return false
             }
             pos[0] += xStep
@@ -375,20 +399,20 @@ class Cells {
     }
 
     // who & what in border coords
-    _canCrossIt(who, what){
-        const whoToken = this._board.getItem(who),
-              whatCell = this._board.getCell(what),
+    canCrossIt(who, what){
+        const whoToken = this.board.getItem(who),
+              whatCell = this.board.getCell(what),
               whatTokenWeight = (whatCell.token ? whatCell.token.weight : 0)
 
         return (whatCell.capacity - whatTokenWeight - whoToken.weight) >= 0
     }
 
-    _change(from, to){
-        const board = this._board,
-              fromToken = this._board.getItem(from),
-              toToken = this._board.getItem(to),
-              fromPixelCoords = this._tokenPixelCoords(from),
-              toPixelCoords = this._tokenPixelCoords(to)
+    change(from, to){
+        const board = this.board,
+              fromToken = this.board.getItem(from),
+              toToken = this.board.getItem(to),
+              fromPixelCoords = this.tokenPixelCoords(from),
+              toPixelCoords = this.tokenPixelCoords(to)
 
         board.setItem(from, toToken)
         board.setItem(to, fromToken)
@@ -434,56 +458,62 @@ class Cells {
         }
     }
 
-    _shuffle(n){
+    shuffle(n){
         let from, to, token
-        const len = this._board.length - 1
+        const len = this.board.length - 1
 
         while(n--){
             do {
                 do {
-                    from = this._indexToCoord(random(len))
-                    token = this._board.getItem(from)
+                    from = this.indexToCoord(random(len))
+                    token = this.board.getItem(from)
                 } while(token instanceof PassiveToken)
 
                 do {
-                    to = this._indexToCoord(random(len))
-                    token = this._board.getItem(to)
+                    to = this.indexToCoord(random(len))
+                    token = this.board.getItem(to)
                 } while(token instanceof PassiveToken)
 
             } while(from[0] === to[0] && from[1] === to[1])
 
-            this._change(from, to)
+            this.change(from, to)
         }
     }
 
     destroy(){
+        delete this.frameCallback
+        delete this._data
         delete this.ctx
-        delete this._baseConfig
-        delete this._activeConfig
-        delete this._passiveConfig
-        this._board.destroy()
-        delete this._board
+        delete this.baseConfig
+        delete this.activeConfig
+        delete this.passiveConfig
+        delete this.panelConfig
+        delete this.counterConfig
+        delete this.timerConfig
+        this.board.destroy()
+        delete this.board
         this.element.removeChild(this.canvas)
         delete this.element
-        delete this._frameCallback
     }
 
     load(data){
 
-        if(!(Array.isArray(data) && data.length === this._board.length)){
+        if(!(Array.isArray(data) && data.length === this.board.length)){
             throw RangeError(`\
-Cells.load: the argument must be an Array[ ${this._board.length} ]`)
+Cells.load: the argument must be an Array[ ${this.board.length} ]`)
         }
 
-        const baseConfig = this._baseConfig
+        this._data = data
+        const baseConfig = this.baseConfig
+
         data.forEach((primitive, i) => {
 
             // board coordinates
-            const coord = this._indexToCoord(i),
-                  [cX, cY] = this._cellPixelCoords(coord),
-                  [x, y] = this._tokenPixelCoords(coord)
+            const coord = this.indexToCoord(i),
+                  [cX, cY] = this.cellPixelCoords(coord),
+                  [x, y] = this.tokenPixelCoords(coord)
             
-            const cell = this._board.getCell(coord)
+            const cell = this.board.getCell(coord)
 
             cell.label = primitive
             cell.x = cX
@@ -493,7 +523,7 @@ Cells.load: the argument must be an Array[ ${this._board.length} ]`)
         })
     }
 
-    _clear(){
+    clear(){
         const ctx = this.ctx
         ctx.shadowBlur = 0
         ctx.clearRect(0, 0, this.canvas.width, this.canvas.height)
@@ -501,7 +531,7 @@ Cells.load: the argument must be an Array[ ${this._board.length} ]`)
         ctx.fillRect(0, 0, this.canvas.width, this.canvas.height)
     }
 
-    _drawPanel(config){
+    drawPanel(config){
 
         const ctx = config.ctx
                        
@@ -547,7 +577,7 @@ Cells.load: the argument must be an Array[ ${this._board.length} ]`)
         ctx.closePath()
 
         // pause
-        const padding = radius * 0.4,
+        const padding = Math.floor(radius * 0.4),
               style = (hover === 'pause') ? hoverStyle : baseStyle
 
         x = config.pauseCenterX
@@ -575,21 +605,40 @@ Cells.load: the argument must be an Array[ ${this._board.length} ]`)
         }
     } // _drawPanel
 
+    drawPausedBoard(){
+        this.ctx.font = this.cellFont
+        this.ctx.fillText(
+            'Paused',
+            Math.floor(this.canvas.width / 2),
+            Math.floor(this.canvas.height / 2),
+        )
+    }
 
     draw(){
 
-        this._clear()
-        this._drawPanel(this._panelConfig)
-        this._timer.draw(this._timerConfig)
-        this._counter.draw(this._counterConfig)
+        if(!this.changed){
+            return
+        }
 
-        for(let i = 0, len = this._board.length; i < len; i++){
+        this.changed = false
 
-            const coords = this._indexToCoord(i),
-                  cell = this._board.getCell(coords),
+        this.clear()
+        this.drawPanel(this.panelConfig)
+        this.timer.draw(this.timerConfig)
+        this.counter.draw(this.counterConfig)
+
+        if(this.paused){
+            this.drawPausedBoard()
+            return
+        }
+
+        for(let i = 0, len = this.board.length; i < len; i++){
+
+            const coords = this.indexToCoord(i),
+                  cell = this.board.getCell(coords),
                   token = cell.token
 
-            cell.draw(this._cellConfig)
+            cell.draw(this.cellConfig)
 
             // free cell
             if(token === null){
@@ -601,7 +650,7 @@ Cells.load: the argument must be an Array[ ${this._board.length} ]`)
 
             if(token instanceof ActiveToken){
                 
-                config = this._activeConfig
+                config = this.activeConfig
 
                 const s = this.selected
                 if(s && (s[0] === coords[0] && s[1] === coords[1])){
@@ -614,9 +663,9 @@ Cells.load: the argument must be an Array[ ${this._board.length} ]`)
                    changes.tokenBorderWidth = Math.floor(this.tokenSize * 0.05)
                 }
             } else if(token instanceof LightPassiveToken){
-                config = this._lightPassiveConfig
+                config = this.lightPassiveConfig
             } else if(token instanceof HeavyPassiveToken){
-                config = this._heavyPassiveConfig
+                config = this.heavyPassiveConfig
             }
             
             if(Object.keys(changes).length){
@@ -628,9 +677,17 @@ Cells.load: the argument must be an Array[ ${this._board.length} ]`)
     }
 
     update(){
-        const queue = this._eventQueue
+        const queue = this.eventQueue,
+              timer = this.timer,
+              stamp = timer.getSeconds()
 
-        this._timer.update()
+        if(!this.paused){
+            timer.update()
+        }
+
+        if(queue.length || timer.getSeconds() !== stamp){
+            this.changed = true
+        }
 
         while(queue.length){
             const handler = queue.shift()
@@ -641,19 +698,37 @@ Cells.load: the argument must be an Array[ ${this._board.length} ]`)
         }
     }
 
-    _frame(){
+    frame(){
+        const state = this.state
+
         this.update()
         this.draw()
 
-        window.requestAnimationFrame(this._frameCallback)
+        if(state === this.PLAY){
+            this.frameDescriptor = window.requestAnimationFrame(this.frameCallback)
+        } else {
+            window.cancelAnimationFrame(this.frameDescriptor)
+
+            if(state === this.CLOSE){
+                this.destroy()
+            } else if(state === this.RELOAD){
+                this.load(this._data)
+                this.run()
+            }
+        }
     }
 
     run(){
-        while(this._isComplete()){
-            this._shuffle(Math.floor(this._board.length / 2))
+        while(this.isComplete()){
+            this.shuffle(Math.floor(this.board.length / 2))
         }
-        this._timer.start()
-        window.requestAnimationFrame(this._frameCallback)
+
+        this.state = this.PLAY
+        this.paused = false
+        this.counter.start()
+        this.timer.start()
+
+        this.frameDescriptor = window.requestAnimationFrame(this.frameCallback)
     }
 }
 
@@ -665,8 +740,6 @@ const map = [
     6, 7, 8, null,
 ]
 
-
 const cells = new Cells('#app', size, { cellSize: 80 })
 cells.load(map)
 cells.run()
-console.log(cells)

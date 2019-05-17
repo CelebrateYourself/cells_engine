@@ -1,12 +1,17 @@
 
 export class Counter {
 
-    constructor(){
-        this.steps = 0
+    constructor(init = 0){
+        this._init = init
+        this.steps = init
     }
 
     incr(){
         this.steps += 1
+    }
+
+    start(){
+        this.steps = this._init
     }
 
     draw(config){

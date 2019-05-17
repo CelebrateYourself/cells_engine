@@ -1,20 +1,22 @@
 
 export class Timer {
 
-    constructor(){
-        this.startStamp = 0
-        this.currentStamp = 0
-
-        this.pauseTime = 0
-    }
+    constructor(){}
 
     start(){
         this.startStamp = new Date().getTime()
         this.currentStamp = this.startStamp
+        this.pauseTime = 0
+        this.pauseStamp = 0
+        this.pauseTime = 0
     }
 
     pause(){
-        this.pauseTime += new Date().getTime()
+        this.pauseStamp = new Date().getTime()
+    }
+
+    unpause(){
+        this.pauseTime += new Date().getTime() - this.pauseStamp
     }
 
     draw(config){
