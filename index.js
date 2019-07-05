@@ -531,6 +531,56 @@ Cells.load: the argument must be an Array[ ${this.board.length} ]`)
         ctx.fillRect(0, 0, this.canvas.width, this.canvas.height)
     }
 
+    drawResults(){
+        this.clear()
+
+        const ctx = this.ctx,
+              halfW = Math.floor(this.canvas.width / 2),
+              indent = Math.floor(this.cellSize * 0.3)
+
+        ctx.textAlign = 'center'
+        ctx.textBaseline = 'middle'
+        ctx.fillStyle = '#666'
+        ctx.font = this.cellFont
+
+        let x = halfW,
+            y = this.cellSize * 0.5
+
+        ctx.fillText('Results', x, y)
+        ctx.lineWidth = this.cellSize * 0.02
+        ctx.beginPath()
+        ctx.strokeStyle = "#bbb"
+        ctx.moveTo(0, y * 1.8)
+        ctx.lineTo(this.canvas.width, y * 1.3)
+        ctx.stroke()
+        ctx.closePath()
+
+        ctx.font = this.panelFont
+        ctx.fillStyle = '#777'
+        
+        y = this.cellSize * 1.2
+
+        x = halfW - indent
+        ctx.textAlign = 'right'
+        ctx.fillText('Time:', x, y)
+
+        x = halfW + indent
+        ctx.textAlign = 'left'
+        ctx.fillText(this.timer.toString(), x, y)
+
+        y = this.cellSize * 1.5
+        
+        x = halfW - indent
+        ctx.textAlign = 'right'
+        ctx.fillText('Steps:', x, y)
+        
+        x = halfW + indent
+        ctx.textAlign = 'left'
+        ctx.fillText(this.counter.toString(), x, y)
+
+        setTimeout(() => this.destroy(), 4000)
+    }
+
     drawPanel(config){
 
         const ctx = config.ctx
@@ -714,6 +764,8 @@ Cells.load: the argument must be an Array[ ${this.board.length} ]`)
             } else if(state === this.RELOAD){
                 this.load(this._data)
                 this.run()
+            } else if(state === this.VICTORY){
+                this.drawResults()
             }
         }
     }
