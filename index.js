@@ -494,6 +494,10 @@ class Cells {
         delete this.board
         this.element.removeChild(this.canvas)
         delete this.element
+
+        if(this.onclose){
+            this.onclose()
+        }
     }
 
     load(data){
@@ -578,7 +582,17 @@ Cells.load: the argument must be an Array[ ${this.board.length} ]`)
         ctx.textAlign = 'left'
         ctx.fillText(this.counter.toString(), x, y)
 
-        setTimeout(() => this.destroy(), 4000)
+        y = this.cellSize * 2.2
+
+        x = halfW
+        ctx.font = this.cellFont
+        ctx.fillStyle = '#666'
+        ctx.textAlign = 'center'
+        ctx.fillText('Click to exit!', x, y)
+
+        this.canvas.addEventListener('click', () => {
+            this.destroy()
+        })
     }
 
     drawPanel(config){
@@ -771,9 +785,13 @@ Cells.load: the argument must be an Array[ ${this.board.length} ]`)
     }
 
     run(){
-        while(this.isComplete()){
+       if(this.onopen){
+           this.onopen()
+       }
+
+       while(this.isComplete()){
             this.shuffle(Math.floor(this.board.length / 2))
-        }
+       }
 
         this.state = this.PLAY
         this.paused = false
