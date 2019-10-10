@@ -212,6 +212,14 @@ class Cells {
         this.canvas.addEventListener('click', (function(e){
             this.eventQueue.push(this.onClick.bind(this, e))
         }).bind(this), false)
+
+        this.canvas.addEventListener('touchstart', (function(e){
+            this.eventQueue.push(this.onClick.bind(this, e))
+        }).bind(this), false)
+
+        this.canvas.addEventListener('touchend', (function(e){
+            this.eventQueue.push(this.onClick.bind(this, e))
+        }).bind(this), false)
     }
 
     onHover(e){
@@ -276,11 +284,23 @@ class Cells {
     }
 
     canvasPixelCoords(e){
+
         const tag = e.target,
               left = tag.offsetLeft,
-              top = tag.offsetTop,
-              x = e.pageX - left,
-              y = e.pageY - top;
+              top = tag.offsetTop
+
+        let clickX, clickY
+        
+        if(e.type === 'touchstart' || e.type === 'touchend'){
+            clickX = e.changedTouches[0].pageX
+            clickY = e.changedTouches[0].pageY
+        } else {
+            clickX = e.pageX
+            clickY = e.pageY
+        }
+
+        const x = clickX - left,
+              y = clickY - top
 
         return [x, y]
     }
