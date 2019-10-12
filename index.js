@@ -219,6 +219,7 @@ class Cells {
 
         this.canvas.addEventListener('touchend', (function(e){
             this.eventQueue.push(this.onClick.bind(this, e))
+            this.hoverToken = null
         }).bind(this), false)
     }
 
