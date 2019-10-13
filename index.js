@@ -198,6 +198,7 @@ class Cells {
         }).bind(this), false)
 
         this.canvas.addEventListener('touchstart', (function(e){
+            this.eventQueue.push(this.onHover.bind(this, e))
             this.eventQueue.push(this.onClick.bind(this, e))
         }).bind(this), false)
 
