@@ -18,7 +18,7 @@ Token.draw: is an abstract method. Must be overridden by subclasses`)
         if(type === 'number'){
             return new ActiveToken(raw, viewConfig)
         } else if(type === 'string'){
-            return PassiveToken.create(raw, viewConfig)
+            return new PassiveToken(raw, viewConfig)
         } else {
             return null
         }
@@ -88,8 +88,16 @@ class ActiveToken extends Token {
 
 class PassiveToken extends Token {
     
+    
     constructor(value, viewConfig){
         super()
+
+        if(Object.values(this.states).indexOf(value) < 0){
+            throw new Error(
+                'PassiveToken.constructor: the "value" ['+ value +'] should be ' + 
+                'an existing state (' + Object.values(this.states).join(', ') + ')'
+            )
+        }
 
         // canvas pixels
         this.x = viewConfig.x
@@ -97,127 +105,9 @@ class PassiveToken extends Token {
         // common sizes
         this.config = viewConfig.baseConfig
         // model
-        this.weight = 100
-        this.value = value
-    }
-
-    toString(){
-        return String(this.value)
-    }
-
-    static create(raw, viewConfig){
-        if(raw === 'heavy'){
-            return new HeavyPassiveToken(raw, viewConfig)
-        } else if(raw === 'light'){
-            return new LightPassiveToken(raw, viewConfig)
-        } else if(raw === 'new'){
-            return new NewPassiveToken(raw, viewConfig)
-        }
-    }
-}
-
-
-class HeavyPassiveToken extends PassiveToken {
-    
-    constructor(value, viewConfig){
-        super(value, viewConfig)
-
         this.weight = 80
-    }
-
-    toString(){
-        return String(this.value)
-    }
-
-    draw(config){
-
-        const ctx = this.config.ctx,
-              tokenSize = this.config.tokenSize,
-              rectRound = this.config.rectRound,
-              x = this.x,
-              y = this.y,
-              roundRect = this.config._roundRect
-
-        // border
-        ctx.fillStyle = config.tokenFillColor
-        ctx.lineWidth = config.tokenBorderWidth
-        ctx.strokeStyle = config.tokenBorderColor
-        ctx.setLineDash([config.tokenBorderDashFilledSize, config.tokenBorderDashEmptySize])
-        roundRect(ctx, x, y, tokenSize, tokenSize, rectRound, true, true)
-        // reset dash
-        ctx.setLineDash([])
-
-        // text
-        ctx.font = config.font
-        ctx.fillStyle = config.textFillStyle
-        ctx.textAlign = config.textAlign
-        ctx.textBaseline = config.textBaseline
-        ctx.fillText(
-            String.fromCharCode(59455),
-            x + config.localTextX,
-            y + config.localTextY,
-            config.textMaxWidth,
-        )
-    }
-}
-
-
-class LightPassiveToken extends PassiveToken {
-    
-    constructor(value, viewConfig){
-        super(value, viewConfig)
-
-        this.weight = 40
-    }
-
-    toString(){
-        return String(this.value)
-    }
-
-    draw(config){
-
-        const ctx = this.config.ctx,
-              tokenSize = this.config.tokenSize,
-              rectRound = this.config.rectRound,
-              roundRect = this.config._roundRect,
-              x = this.x,
-              y = this.y
-
-        ctx.fillStyle = config.tokenFillColor
-        roundRect(ctx, x, y, tokenSize, tokenSize, rectRound, true, false)
-        // text
-        ctx.font = config.font
-        ctx.fillStyle = config.textFillStyle
-        ctx.textAlign = config.textAlign
-        ctx.textBaseline = config.textBaseline
-        ctx.fillText(
-            String.fromCharCode(61872),
-            x + config.localTextX,
-            y + config.localTextY,
-            config.textMaxWidth,
-        )
-    }
-}
-
-
-class NewPassiveToken extends PassiveToken {
-    
-    constructor(value, viewConfig){
-        super(value, viewConfig)
-
-        let availableStates = [
-            this.LEFT,
-            this.RIGHT,
-            this.TOP,
-            this.BOTTOM,
-            this.ALL,
-            this.VERTICAL,
-            this.HORIZONTAL,
-            this.NONE
-        ]
-
-        this.state = availableStates[random(availableStates.length)]
-        //this.state = this.VERTICAL
+        this.value = value
+        this.state = value
     }
 
     toString(){
@@ -264,7 +154,7 @@ class NewPassiveToken extends PassiveToken {
 
         switch(this.state){
 
-        case this.BOTTOM:
+        case this.states.BOTTOM:
             this._drawSingleArrow(
                 ctx,
                 [centerX - figRadius, centerY], 
@@ -278,7 +168,7 @@ class NewPassiveToken extends PassiveToken {
             )
             break;
 
-        case this.TOP:
+        case this.states.TOP:
             this._drawSingleArrow(
                 ctx,
                 [centerX - figRadius, centerY], 
@@ -292,7 +182,7 @@ class NewPassiveToken extends PassiveToken {
             )
             break;
 
-        case this.LEFT:
+        case this.states.LEFT:
             this._drawSingleArrow(
                 ctx,
                 [centerX, centerY - figRadius], 
@@ -306,7 +196,7 @@ class NewPassiveToken extends PassiveToken {
             )
             break;
 
-        case this.RIGHT:
+        case this.states.RIGHT:
             this._drawSingleArrow(
                 ctx,
                 [centerX, centerY - figRadius], 
@@ -320,7 +210,7 @@ class NewPassiveToken extends PassiveToken {
             )
             break;
 
-        case this.ALL:
+        case this.states.ALL:
             this._drawSingleArrow(
                 ctx,
                 [centerX - halfFigRadius, centerY - figRadius],
@@ -362,7 +252,7 @@ class NewPassiveToken extends PassiveToken {
             )*/
             break;
 
-        case this.VERTICAL:
+        case this.states.VERTICAL:
             this._drawSingleArrow(
                 ctx,
                 [centerX - halfFigRadius, centerY - figRadius],
@@ -382,7 +272,7 @@ class NewPassiveToken extends PassiveToken {
             )
             break;
         
-        case this.HORIZONTAL:
+        case this.states.HORIZONTAL:
             this._drawSingleArrow(
                 ctx,
                 [centerX - halfFigRadius, centerY - figRadius],
@@ -402,7 +292,7 @@ class NewPassiveToken extends PassiveToken {
             )
             break;
 
-        case this.NONE:
+        case this.states.NONE:
 
             this._drawSingleArc(
                 ctx,
@@ -423,15 +313,17 @@ class NewPassiveToken extends PassiveToken {
 }
 
 
-Object.assign(NewPassiveToken.prototype, {
-    NONE: 'none',
-    LEFT: 'left',
-    RIGHT: 'right',
-    TOP: 'top',
-    BOTTOM: 'bottom',
-    HORIZONTAL: 'horizontal',
-    VERTICAL: 'vertical',
-    ALL: 'all',
+Object.assign(PassiveToken.prototype, {
+    states: {
+        NONE: 'none',
+        LEFT: 'left',
+        RIGHT: 'right',
+        TOP: 'top',
+        BOTTOM: 'bottom',
+        HORIZONTAL: 'horizontal',
+        VERTICAL: 'vertical',
+        ALL: 'all',
+    }
 })
 
 
@@ -439,7 +331,4 @@ export {
     Token,
     ActiveToken,
     PassiveToken,
-    HeavyPassiveToken,
-    LightPassiveToken,
-    NewPassiveToken,
 }

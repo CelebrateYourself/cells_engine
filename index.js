@@ -3,9 +3,9 @@ import {
     Token,
     ActiveToken,
     PassiveToken,
-    HeavyPassiveToken,
-    LightPassiveToken,
-    NewPassiveToken,
+    //HeavyPassiveToken,
+    //LightPassiveToken,
+    //NewPassiveToken,
 } from './cells/token'
 import { Counter } from './cells/counter'
 import { Timer } from './cells/timer'
@@ -119,37 +119,7 @@ class Cells {
             localTextY: Math.floor(this.tokenSize / 1.8),
         })
 
-        this.heavyPassiveConfig = Object.freeze({
-            // token
-            tokenBorderColor: '#999',
-            tokenBorderWidth: Math.floor(this.tokenSize * 0.02),
-            tokenBorderDashFilledSize: Math.floor(this.tokenSize * 0.08),
-            tokenBorderDashEmptySize: Math.floor(this.tokenSize * 0.05),
-            tokenFillColor: '#fff',
-            // text
-            font: this.cellPicFont,
-            textFillStyle: '#777',
-            textAlign: 'center',
-            textBaseline: 'middle',
-            textMaxWidth: Math.floor(this.tokenSize * 0.75),
-            localTextX: Math.floor(this.tokenSize / 2),
-            localTextY: Math.floor(this.tokenSize / 1.9), 
-        })
-
-        this.lightPassiveConfig = Object.freeze({
-            // token
-            tokenFillColor: '#fff',
-            // text
-            font: this.cellPicFont,
-            textFillStyle: '#777',
-            textAlign: 'center',
-            textBaseline: 'middle',
-            textMaxWidth: Math.floor(this.tokenSize * 0.75),
-            localTextX: Math.floor(this.tokenSize / 2),
-            localTextY: Math.floor(this.tokenSize / 1.9), 
-        })
-
-        this.newPassiveConfig = Object.freeze({
+        this.PassiveConfig = Object.freeze({
             // token
             tokenFillColor: '#fff',
             // figure
@@ -446,38 +416,38 @@ class Cells {
         let whatTokenWeight = 0
               
         if(whatToken){
-          if(whatToken instanceof NewPassiveToken){
+          if(whatToken instanceof PassiveToken){
             switch(whatToken.state){
             
-            case whatToken.NONE:
+            case whatToken.states.NONE:
                 whatTokenWeight = HEAVY
                 break;
 
-            case whatToken.ALL:
+            case whatToken.states.ALL:
                 whatTokenWeight = LIGHT
                 break;
 
-            case whatToken.BOTTOM:
+            case whatToken.states.BOTTOM:
                 whatTokenWeight = who[0] < what[0] && who[1] === what[1] ? LIGHT : HEAVY
                 break;
             
-            case whatToken.TOP:
+            case whatToken.states.TOP:
                 whatTokenWeight = who[0] > what[0] && who[1] === what[1] ? LIGHT : HEAVY
                 break;
 
-            case whatToken.LEFT:
+            case whatToken.states.LEFT:
                 whatTokenWeight = who[0] === what[0] && who[1] > what[1] ? LIGHT : HEAVY
                 break;
 
-            case whatToken.RIGHT:
+            case whatToken.states.RIGHT:
                 whatTokenWeight = who[0] === what[0] && who[1] < what[1] ? LIGHT : HEAVY
                 break;
 
-            case whatToken.HORIZONTAL:
+            case whatToken.states.HORIZONTAL:
                 whatTokenWeight = who[0] === what[0] ? LIGHT : HEAVY
                 break;
 
-            case whatToken.VERTICAL:
+            case whatToken.states.VERTICAL:
                 whatTokenWeight = who[1] === what[1] ? LIGHT : HEAVY
                 break;
         
@@ -810,12 +780,9 @@ Cells.load: the argument must be an Array[ ${this.board.length} ]`)
                    changes.tokenBorderColor = '#aaa'
                    changes.tokenBorderWidth = Math.floor(this.tokenSize * 0.05)
                 }
-            } else if(token instanceof LightPassiveToken){
-                config = this.lightPassiveConfig
-            } else if(token instanceof HeavyPassiveToken){
-                config = this.heavyPassiveConfig
-            } else if(token instanceof NewPassiveToken){
-                config = this.newPassiveConfig
+
+            } else if(token instanceof PassiveToken){
+                config = this.PassiveConfig
             }
             
             if(Object.keys(changes).length){
