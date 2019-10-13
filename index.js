@@ -4,7 +4,8 @@ import {
     ActiveToken,
     PassiveToken,
     HeavyPassiveToken,
-    LightPassiveToken
+    LightPassiveToken,
+    NewPassiveToken,
 } from './cells/token'
 import { Counter } from './cells/counter'
 import { Timer } from './cells/timer'
@@ -146,6 +147,19 @@ class Cells {
             textMaxWidth: Math.floor(this.tokenSize * 0.75),
             localTextX: Math.floor(this.tokenSize / 2),
             localTextY: Math.floor(this.tokenSize / 1.9), 
+        })
+
+        this.newPassiveConfig = Object.freeze({
+            // token
+            tokenFillColor: '#fff',
+            // figure
+            lineCap: 'round',
+            lineWidth: Math.floor(this.tokenSize * 0.09),
+            arrowColor: "#777",
+            xLineColor: '#fff',
+            arcFill: "#bbb",
+            figureRadius: Math.floor(this.tokenSize * 0.2),
+            center: Math.floor(this.tokenSize / 2)
         })
 
         this.timerConfig = Object.freeze({
@@ -421,9 +435,58 @@ class Cells {
 
     // who & what in border coords
     canCrossIt(who, what){
+        const HEAVY = 80,
+              LIGHT = 40
+
         const whoToken = this.board.getItem(who),
               whatCell = this.board.getCell(what),
-              whatTokenWeight = (whatCell.token ? whatCell.token.weight : 0)
+              // whatTokenWeight = (whatCell.token ? whatCell.token.weight : 0),
+              whatToken = whatCell.token
+
+        let whatTokenWeight = 0
+              
+        if(whatToken){
+          if(whatToken instanceof NewPassiveToken){
+            switch(whatToken.state){
+            
+            case whatToken.NONE:
+                whatTokenWeight = HEAVY
+                break;
+
+            case whatToken.ALL:
+                whatTokenWeight = LIGHT
+                break;
+
+            case whatToken.BOTTOM:
+                whatTokenWeight = who[0] < what[0] && who[1] === what[1] ? LIGHT : HEAVY
+                break;
+            
+            case whatToken.TOP:
+                whatTokenWeight = who[0] > what[0] && who[1] === what[1] ? LIGHT : HEAVY
+                break;
+
+            case whatToken.LEFT:
+                whatTokenWeight = who[0] === what[0] && who[1] > what[1] ? LIGHT : HEAVY
+                break;
+
+            case whatToken.RIGHT:
+                whatTokenWeight = who[0] === what[0] && who[1] < what[1] ? LIGHT : HEAVY
+                break;
+
+            case whatToken.HORIZONTAL:
+                whatTokenWeight = who[0] === what[0] ? LIGHT : HEAVY
+                break;
+
+            case whatToken.VERTICAL:
+                whatTokenWeight = who[1] === what[1] ? LIGHT : HEAVY
+                break;
+        
+            }
+            
+          } else {
+              whatTokenWeight = whatToken.weight
+          }
+        }
 
         return (whatCell.capacity - whatTokenWeight - whoToken.weight) >= 0
     }
@@ -751,6 +814,8 @@ Cells.load: the argument must be an Array[ ${this.board.length} ]`)
                 config = this.lightPassiveConfig
             } else if(token instanceof HeavyPassiveToken){
                 config = this.heavyPassiveConfig
+            } else if(token instanceof NewPassiveToken){
+                config = this.newPassiveConfig
             }
             
             if(Object.keys(changes).length){

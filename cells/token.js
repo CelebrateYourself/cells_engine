@@ -1,4 +1,4 @@
-
+import { random } from './utils'
 
 class Token {
 
@@ -110,6 +110,8 @@ class PassiveToken extends Token {
             return new HeavyPassiveToken(raw, viewConfig)
         } else if(raw === 'light'){
             return new LightPassiveToken(raw, viewConfig)
+        } else if(raw === 'new'){
+            return new NewPassiveToken(raw, viewConfig)
         }
     }
 }
@@ -198,10 +200,246 @@ class LightPassiveToken extends PassiveToken {
 }
 
 
+class NewPassiveToken extends PassiveToken {
+    
+    constructor(value, viewConfig){
+        super(value, viewConfig)
+
+        let availableStates = [
+            this.LEFT,
+            this.RIGHT,
+            this.TOP,
+            this.BOTTOM,
+            this.ALL,
+            this.VERTICAL,
+            this.HORIZONTAL,
+            this.NONE
+        ]
+
+        this.state = availableStates[random(availableStates.length)]
+        //this.state = this.VERTICAL
+    }
+
+    toString(){
+        return String(this.value)
+    }
+
+    _drawSingleArrow(ctx, arw1, arwC, arw2){
+        ctx.beginPath()
+        ctx.moveTo(...arw1)
+        ctx.lineTo(...arwC)
+        ctx.lineTo(...arw2)
+        ctx.stroke()
+        ctx.closePath()
+    }
+
+    _drawSingleArc(ctx, arcC, arcR){
+        ctx.beginPath()
+        ctx.arc(...arcC, arcR, 0, Math.PI * 2)
+        ctx.fill()
+        ctx.closePath()
+    }
+
+    draw(config){
+
+        const ctx = this.config.ctx,
+              tokenSize = this.config.tokenSize,
+              rectRound = this.config.rectRound,
+              roundRect = this.config._roundRect,
+              x = this.x,
+              y = this.y,
+              centerX = x + config.center,
+              centerY = y + config.center,
+              figRadius = config.figureRadius,
+              halfFigRadius = figRadius / 2
+
+        ctx.fillStyle = config.tokenFillColor
+        roundRect(ctx, x, y, tokenSize, tokenSize, rectRound, true, false)
+        
+        // arrows
+        ctx.lineCap = config.lineCap
+        ctx.lineWidth = config.lineWidth
+        ctx.strokeStyle = config.arrowColor
+        ctx.fillStyle = config.arcFill
+
+        switch(this.state){
+
+        case this.BOTTOM:
+            this._drawSingleArrow(
+                ctx,
+                [centerX - figRadius, centerY], 
+                [centerX, centerY + figRadius],
+                [centerX + figRadius, centerY]
+            )
+            this._drawSingleArc(
+                ctx,
+                [centerX, centerY - halfFigRadius],
+                halfFigRadius
+            )
+            break;
+
+        case this.TOP:
+            this._drawSingleArrow(
+                ctx,
+                [centerX - figRadius, centerY], 
+                [centerX, centerY - figRadius],
+                [centerX + figRadius, centerY]
+            )
+            this._drawSingleArc(
+                ctx,
+                [centerX, centerY + halfFigRadius],
+                halfFigRadius
+            )
+            break;
+
+        case this.LEFT:
+            this._drawSingleArrow(
+                ctx,
+                [centerX, centerY - figRadius], 
+                [centerX - figRadius, centerY],
+                [centerX, centerY + figRadius]
+            )
+            this._drawSingleArc(
+                ctx,
+                [centerX + halfFigRadius, centerY],
+                halfFigRadius
+            )
+            break;
+
+        case this.RIGHT:
+            this._drawSingleArrow(
+                ctx,
+                [centerX, centerY - figRadius], 
+                [centerX + figRadius, centerY],
+                [centerX, centerY + figRadius]
+            )
+            this._drawSingleArc(
+                ctx,
+                [centerX - halfFigRadius, centerY],
+                halfFigRadius
+            )
+            break;
+
+        case this.ALL:
+            this._drawSingleArrow(
+                ctx,
+                [centerX - halfFigRadius, centerY - figRadius],
+                [centerX, centerY - figRadius - halfFigRadius],
+                [centerX + halfFigRadius, centerY - figRadius]
+            )
+            this._drawSingleArrow(
+                ctx,
+                [centerX - halfFigRadius, centerY + figRadius],
+                [centerX, centerY + figRadius + halfFigRadius],
+                [centerX + halfFigRadius, centerY + figRadius]
+            )
+            this._drawSingleArrow(
+                ctx,
+                [centerX - figRadius, centerY - halfFigRadius],
+                [centerX - figRadius - halfFigRadius, centerY],
+                [centerX - figRadius, centerY + halfFigRadius]
+            )
+            this._drawSingleArrow(
+                ctx,
+                [centerX + figRadius, centerY - halfFigRadius],
+                [centerX + figRadius + halfFigRadius, centerY],
+                [centerX + figRadius, centerY + halfFigRadius]
+            )
+            
+            ctx.beginPath()
+            ctx.strokeStyle = config.arcFill
+            ctx.moveTo(centerX, centerY - halfFigRadius)
+            ctx.lineTo(centerX, centerY + halfFigRadius)
+            ctx.moveTo(centerX - halfFigRadius, centerY)
+            ctx.lineTo(centerX + halfFigRadius, centerY)
+            ctx.stroke()
+            ctx.closePath()
+            /*
+            this._drawSingleArc(
+                ctx,
+                [centerX, centerY],
+                halfFigRadius,
+            )*/
+            break;
+
+        case this.VERTICAL:
+            this._drawSingleArrow(
+                ctx,
+                [centerX - halfFigRadius, centerY - figRadius],
+                [centerX, centerY - figRadius - halfFigRadius],
+                [centerX + figRadius, centerY - halfFigRadius]
+            )
+            this._drawSingleArrow(
+                ctx,
+                [centerX - figRadius, centerY + halfFigRadius],
+                [centerX, centerY + figRadius + halfFigRadius],
+                [centerX + halfFigRadius, centerY + figRadius]
+            )
+            this._drawSingleArc(
+                ctx,
+                [centerX, centerY],
+                halfFigRadius,
+            )
+            break;
+        
+        case this.HORIZONTAL:
+            this._drawSingleArrow(
+                ctx,
+                [centerX - halfFigRadius, centerY - figRadius],
+                [centerX - figRadius - halfFigRadius, centerY],
+                [centerX - figRadius, centerY + halfFigRadius]
+            )
+            this._drawSingleArrow(
+                ctx,
+                [centerX + figRadius, centerY - halfFigRadius],
+                [centerX + figRadius + halfFigRadius, centerY],
+                [centerX + halfFigRadius, centerY + figRadius]
+            )
+            this._drawSingleArc(
+                ctx,
+                [centerX, centerY],
+                halfFigRadius,
+            )
+            break;
+
+        case this.NONE:
+
+            this._drawSingleArc(
+                ctx,
+                [centerX, centerY],
+                figRadius + halfFigRadius
+            )
+            ctx.beginPath()
+            ctx.strokeStyle = config.xLineColor
+            ctx.moveTo(centerX - halfFigRadius, centerY - halfFigRadius)
+            ctx.lineTo(centerX + halfFigRadius, centerY + halfFigRadius)
+            ctx.moveTo(centerX + halfFigRadius, centerY - halfFigRadius)
+            ctx.lineTo(centerX - halfFigRadius, centerY + halfFigRadius)
+            ctx.stroke()
+            ctx.closePath()
+            break;
+        }
+    }
+}
+
+
+Object.assign(NewPassiveToken.prototype, {
+    NONE: 'none',
+    LEFT: 'left',
+    RIGHT: 'right',
+    TOP: 'top',
+    BOTTOM: 'bottom',
+    HORIZONTAL: 'horizontal',
+    VERTICAL: 'vertical',
+    ALL: 'all',
+})
+
+
 export {
     Token,
     ActiveToken,
     PassiveToken,
     HeavyPassiveToken,
     LightPassiveToken,
+    NewPassiveToken,
 }
