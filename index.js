@@ -199,11 +199,11 @@ class Cells {
 
         this.canvas.addEventListener('touchstart', (function(e){
             this.eventQueue.push(this.onHover.bind(this, e))
-            this.eventQueue.push(this.onClick.bind(this, e))
+            this.eventQueue.push(this.onTouch.bind(this, e))
         }).bind(this), false)
 
         this.canvas.addEventListener('touchend', (function(e){
-            this.eventQueue.push(this.onClick.bind(this, e))
+            this.eventQueue.push(this.onTouch.bind(this, e))
             this.hoverToken = null
         }).bind(this), false)
     }
@@ -254,6 +254,29 @@ class Cells {
             }
         }
 
+    }
+
+    onTouch(e){
+        const pixCoords = this.canvasPixelCoords(e),
+              coords = this.hoverTokenCoords(pixCoords)
+
+        if(coords && !this.paused){
+
+            const token = this.board.getItem(coords)
+            
+            if(token instanceof ActiveToken){
+                this.selected = coords
+            } else if(
+                token === null &&
+                this.selected &&
+                this.isValidMove(this.selected, coords)
+            ){
+                this.change(this.selected, coords)
+                this.selected = null
+                this.eventQueue.push(this.onChange.bind(this))
+                this.eventQueue.push(this.counter.incr.bind(this.counter))
+            }
+        }   
     }
     
     onChange(){
@@ -830,6 +853,14 @@ Cells.load: the argument must be an Array[ ${this.board.length} ]`)
             if(state === this.CLOSE){
                 this.destroy()
             } else if(state === this.RELOAD){
+                
+                this.hoverToken = null
+                this.selected = null
+                this.changed = true
+                this.paused = false
+                this.state = this.PLAY
+                this.eventQueue.length = 0    
+                
                 this.load(this._data)
                 this.run()
             } else if(state === this.VICTORY){
