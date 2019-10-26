@@ -1,4 +1,3 @@
-import { random } from './utils'
 
 class Token {
 
@@ -22,6 +21,10 @@ Token.draw: is an abstract method. Must be overridden by subclasses`)
         } else {
             return null
         }
+    }
+
+    static toRaw(token){
+        return (token && 'value' in token) ? token.value : null
     }
 }
 
