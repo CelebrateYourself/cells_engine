@@ -11,7 +11,7 @@ import { random } from './utils'
 
 class Cells {
 
-    constructor(selector, size, config){
+    constructor(size, config){
 
         this.PLAY = 'play'
         this.CLOSE = 'close'
@@ -27,8 +27,7 @@ class Cells {
         this.timer = new Timer()
         this.counter = new Counter()
 
-        // root and canvas HTMLElement
-        this.element = document.querySelector(selector)
+        // canvas HTMLElement
         this.canvas = document.createElement('canvas')
         this.ctx = this.canvas.getContext('2d')
         this.backgroundColor = '#fff'
@@ -71,10 +70,13 @@ class Cells {
             this.canvasPadding * 2 + this.panelSize
         )
         
-        this.element.appendChild(this.canvas)
         this.frameCallback = this.frame.bind(this)
         this.computeStyles()
         this.attachEvents()
+    }
+
+    mount(selector){
+        document.querySelector(selector).appendChild(this.canvas)
     }
 
     computeStyles(){
@@ -580,8 +582,8 @@ class Cells {
         delete this.timerConfig
         this.board.destroy()
         delete this.board
-        this.element.removeChild(this.canvas)
-        delete this.element
+        this.canvas.parentNode.removeChild(this.canvas)
+        delete this.canvas
 
         if(this.onclose){
             this.onclose()

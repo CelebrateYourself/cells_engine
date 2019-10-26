@@ -16,18 +16,19 @@ cells.run()
 import { Cells, CellsBuilder } from '../../index'
 
 
-const cells = new CellsBuilder('#app', null, { cellSize: 80 })
+const cells = new CellsBuilder(null, { cellSize: 80 })
 
 let game, config
 
 
 cells.onsave = function(data){
     config = data
-    game = new Cells('#app', [data.rows, data.cols], { cellSize: 80 })
+    game = new Cells([data.rows, data.cols], { cellSize: 80 })
 }
 
 cells.onclose = function(){
     if(game && config){
+        game.mount('#app')
         game.load(config.map)
         game.run()
     }
@@ -42,6 +43,7 @@ ${ warnings.join('\n') }
 Все равно сохранить карту?
 `)
 
+cells.mount('#app')
 cells.load()
 cells.run()
 

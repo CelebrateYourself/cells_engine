@@ -9,7 +9,7 @@ import {
 
 class CellsBuilder {
 
-    constructor(selector, size, config){
+    constructor(size, config){
 
         this.PLAY = 'play'
         this.RELOAD = 'reload'
@@ -50,8 +50,7 @@ class CellsBuilder {
         this.board = new Board(size)
 
 
-        // root and canvas HTMLElement
-        this.element = document.querySelector(selector)
+        // canvas HTMLElement
         this.canvas = document.createElement('canvas')
         this.ctx = this.canvas.getContext('2d')
         this.backgroundColor = '#fff'
@@ -98,12 +97,15 @@ class CellsBuilder {
         this.buttonPadding = Math.floor(this.panelButtonSize * 0.3)
         
         //=======================
-        this.element.appendChild(this.canvas)
         this.frameCallback = this.frame.bind(this)
         this.computeStyles()
         this.attachEvents()
         
         this.computePanelButtons()
+    }
+
+    mount(selector){
+        document.querySelector(selector).appendChild(this.canvas)
     }
 
     computeCanvasSize(){
@@ -905,8 +907,8 @@ class CellsBuilder {
         delete this.timerConfig
         this.board.destroy()
         delete this.board
-        this.element.removeChild(this.canvas)
-        delete this.element
+        this.canvas.parentNode.removeChild(this.canvas)
+        delete this.canvas
 
         if(this.onclose){
             this.onclose()
